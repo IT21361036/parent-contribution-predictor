@@ -62,6 +62,7 @@ create table quizzes (
   subject_id uuid references subjects(id),
   title text not null,
   total_marks int,
+  due_date timestamptz,        -- optional deadline; drives lazy 'quiz_due' notifications
   created_at timestamptz default now()
 );
 
@@ -181,6 +182,36 @@ create table intervention_notes (
 );
 create index intervention_notes_child_idx on intervention_notes(child_id);
 
+-- ========== NOTIFICATIONS (in-app; parent-facing) ==========
+-- Created only by the FastAPI backend (service-role key) on defined events:
+-- quiz_result, quiz_due (generated lazily), report_card, risk_alert.
+-- Reading one sets read_at, which also feeds the engagement scorer
+-- (folded into check_frequency — no ML retrain).
+create table notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_id uuid not null references profiles(id) on delete cascade,  -- the parent
+  type text not null,          -- 'quiz_result' | 'quiz_due' | 'report_card' | 'risk_alert'
+  title text not null,
+  body text not null,
+  child_id uuid references profiles(id) on delete cascade,   -- the child it concerns
+  related_id uuid,             -- quiz_id / report_card_id / prediction id (no FK: polymorphic)
+  read_at timestamptz,         -- set when the parent opens it — drives the scoring impact
+  created_at timestamptz default now()
+);
+create index notifications_recipient_idx on notifications(recipient_id, read_at);
+
+-- ========== REPORT CARDS (admin uploads a PDF per student per term) ==========
+create table report_cards (
+  id uuid primary key default gen_random_uuid(),
+  child_id uuid not null references profiles(id) on delete cascade,
+  term text not null,          -- e.g. '2025 Term 1'
+  title text,
+  storage_path text not null,  -- PDF in the private 'report-cards' bucket
+  uploaded_by uuid not null references profiles(id),  -- the admin
+  created_at timestamptz default now()
+);
+create index report_cards_child_idx on report_cards(child_id);
+
 -- ============================================================
 -- ROW-LEVEL SECURITY
 -- Enabled on every table now, so nothing is world-readable by default
@@ -206,6 +237,10 @@ alter table academic_records enable row level security;
 alter table predictions enable row level security;
 alter table messages enable row level security;
 alter table intervention_notes enable row level security;
+alter table notifications enable row level security;
+alter table report_cards enable row level security;
+-- notifications & report_cards are API-only (service-role key bypasses RLS);
+-- no select policies, so they are never world- or client-readable.
 
 -- Phase 1: a logged-in user can read their own profile row.
 -- (Role changes and creating admin/parent profiles happen only
@@ -263,6 +298,14 @@ create trigger on_auth_user_created
 
 insert into storage.buckets (id, name, public)
 values ('materials', 'materials', false)
+on conflict (id) do nothing;
+
+-- Report-card PDFs. Private; all up/downloads go through the FastAPI backend
+-- with the service-role key. (Buckets don't always create reliably from this
+-- SQL on an existing project — if uploads 404, create it manually in the
+-- Supabase Storage UI: name 'report-cards', Public = off.)
+insert into storage.buckets (id, name, public)
+values ('report-cards', 'report-cards', false)
 on conflict (id) do nothing;
 
 -- ============================================================

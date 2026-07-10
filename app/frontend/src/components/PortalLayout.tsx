@@ -11,6 +11,7 @@ export interface NavItem {
   key: string
   label: string
   icon: LucideIcon
+  badge?: number
 }
 
 export function PortalLayout({
@@ -63,7 +64,12 @@ export function PortalLayout({
                 }`}
               >
                 <Icon className="size-5" />
-                {item.label}
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge ? (
+                  <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                ) : null}
               </button>
             )
           })}

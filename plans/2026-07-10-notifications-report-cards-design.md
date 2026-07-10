@@ -1,7 +1,8 @@
 # Notifications + Report Cards — Design & Implementation Plan
 
 **Date:** 2026-07-10
-**Status:** Approved (design agreed with user). Not yet implemented.
+**Status:** Implemented 2026-07-10 (see Progress_Log). Pending: apply DB
+migration + create bucket, then manual end-to-end pass.
 **Depends on:** Phases 0–7 complete. No conflict with Phase 7 camera work.
 
 ## Scope (agreed)

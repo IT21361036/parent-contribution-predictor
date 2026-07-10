@@ -55,6 +55,31 @@ def _session_hours(session: dict) -> float:
     return max(0.0, (end - start).total_seconds() / 3600.0)
 
 
+def _read_notifications_count(client, child_id: str) -> int:
+    """How many notifications the child's linked parent(s) have READ.
+
+    Folded into `check_frequency` below so that a parent responding to alerts
+    (reading quiz-result / risk / report-card notifications) counts as
+    involvement — same as a history check. This keeps the thesis model
+    unchanged: no new ML feature, no retrain — responsiveness is simply another
+    form of the existing check-ins signal.
+    """
+    links = (
+        client.table("parent_child_link").select("parent_id").eq("child_id", child_id).execute().data
+    )
+    parent_ids = [link["parent_id"] for link in links]
+    if not parent_ids:
+        return 0
+    rows = (
+        client.table("notifications")
+        .select("read_at")
+        .in_("recipient_id", parent_ids)
+        .execute()
+        .data
+    )
+    return sum(1 for r in rows if r.get("read_at") is not None)
+
+
 def _latest_attention(client, child_id: str) -> float:
     """Average attention score for the child's most recent session that has a
     camera reading. Until Phase 7 there are none, so this returns the neutral
@@ -84,7 +109,12 @@ def compute_for_child(client, child_id: str, period: str = "current") -> dict:
         client.table("monitoring_sessions").select("*").eq("child_id", child_id).execute().data
     )
     monitoring_hours = round(sum(_session_hours(s) for s in sessions), 4)
-    check_frequency = float(sum(s.get("history_checks", 0) or 0 for s in sessions))
+    # Check-ins = explicit history checks during monitoring + notifications the
+    # parent has read (responsiveness folded in — see _read_notifications_count).
+    check_frequency = float(
+        sum(s.get("history_checks", 0) or 0 for s in sessions)
+        + _read_notifications_count(client, child_id)
+    )
     attention = _latest_attention(client, child_id)
     pei = compute_pei(monitoring_hours, check_frequency, attention)
 

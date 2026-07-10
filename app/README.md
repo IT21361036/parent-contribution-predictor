@@ -147,3 +147,20 @@ directly via `/docs` if you ever need to script bulk account creation.)
   already the socket; the engagement scorer already averages real attention
   scores. New frontend dep `@mediapipe/tasks-vision`. Pure gaze/liveness/
   accumulation logic unit-verified; real-webcam gaze accuracy needs a manual pass.
+- **Notifications + report cards:** done (built on top of the 8 phases). In-app
+  **notifications** to parents fire on four events — quiz result available
+  (auto-graded on submit), quiz due soon (generated lazily in `GET /notifications`
+  from `quizzes.due_date`, deduped), report card published, and a **risk alert**
+  when a child's predicted band worsens on a prediction run. Parents get a
+  **Notifications** sidebar section (unread badge, click-to-open marks read and
+  deep-links to the relevant section) and a **Report Cards** section (view/download
+  PDFs). Admins upload a **report card PDF per term** from the student detail page
+  (private `report-cards` bucket, signed-URL downloads). **Reading a notification
+  feeds the engagement score** — the read count is folded into `check_frequency`
+  (so parental responsiveness raises the PEI via the existing 30% check-ins
+  weight); this is deliberately *not* a new ML feature, so the thesis model is
+  unchanged and needs no retrain (responsiveness folded into check-ins). New
+  tables `notifications` + `report_cards` and `quizzes.due_date` — see
+  `supabase/migrations/2026-07-10-notifications-report-cards.sql` to apply to an
+  existing DB. All creation/role logic is API-only with the service-role key
+  (RLS-vs-API golden rule); notifications have no public create endpoint.

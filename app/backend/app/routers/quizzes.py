@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_role
 from app.db.supabase_client import get_service_client
+from app.services.notifications import notify_quiz_result, notify_safe
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
@@ -24,6 +25,7 @@ class CreateQuizRequest(BaseModel):
     title: str
     subject_id: str
     questions: list[QuestionInput]
+    due_date: str | None = None  # ISO timestamp; drives lazy quiz_due notifications
 
 
 class AttemptAnswer(BaseModel):
@@ -149,6 +151,19 @@ def submit_attempt(quiz_id: str, body: SubmitAttemptRequest, user: CurrentUser =
         {"child_id": user.id, "action": "quiz_submit"}
     ).execute()
 
+    # Results are immediate (auto-graded on submit — no separate release step),
+    # so this is where the score becomes visible: notify the linked parent(s).
+    quiz = client.table("quizzes").select("title").eq("id", quiz_id).maybe_single().execute().data
+    notify_safe(
+        notify_quiz_result,
+        client,
+        user.id,
+        quiz_id=quiz_id,
+        quiz_title=(quiz or {}).get("title", "a quiz"),
+        score=score,
+        max_score=max_score,
+    )
+
     return attempt
 
 
@@ -173,6 +188,7 @@ def create_quiz(body: CreateQuizRequest, user: CurrentUser = Depends(require_con
                 "subject_id": body.subject_id,
                 "title": body.title,
                 "total_marks": total_marks,
+                "due_date": body.due_date,
             }
         )
         .execute()

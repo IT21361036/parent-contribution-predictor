@@ -8,10 +8,12 @@ from app.routers import (
     engagement,
     health,
     materials,
+    notifications,
     parent,
     predictions,
     profiles,
     quizzes,
+    report_cards,
     students,
     subjects,
 )
@@ -37,3 +39,5 @@ app.include_router(parent.router)
 app.include_router(predictions.router)
 app.include_router(engagement.router)
 app.include_router(students.router)
+app.include_router(notifications.router)
+app.include_router(report_cards.router)

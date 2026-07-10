@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth.dependencies import CurrentUser, require_role
 from app.db.supabase_client import get_service_client
 from app.ml import predictor
+from app.services.notifications import notify_risk_alert, notify_safe
 
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
@@ -21,6 +22,17 @@ require_parent_or_admin = require_role("parent", "admin")
 require_admin = require_role("admin")
 
 TERM = "current"
+
+# Low is safest, high is worst — used to detect a band that has worsened.
+_BAND_ORDER = {"low": 0, "medium": 1, "high": 2}
+
+
+def _band_worsened(old: str | None, new: str | None) -> bool:
+    """True only when there is a previous band and the new one is strictly worse
+    (e.g. medium -> high). A first-ever prediction never fires an alert."""
+    if old is None or new is None:
+        return False
+    return _BAND_ORDER.get(new, -1) > _BAND_ORDER.get(old, -1)
 
 
 def _assert_access(client, user: CurrentUser, child_id: str) -> None:
@@ -96,9 +108,30 @@ def run_predictions(_: CurrentUser = Depends(require_admin)):
     predicted, failed = 0, []
     for child in children:
         try:
+            prev = (
+                client.table("predictions")
+                .select("risk_band")
+                .eq("child_id", child["id"])
+                .eq("term", TERM)
+                .execute()
+                .data
+            )
+            old_band = prev[0]["risk_band"] if prev else None
+
             pred = predictor.predict(client, child["id"])
-            _store_prediction(client, pred)
+            stored = _store_prediction(client, pred)
             predicted += 1
+
+            # Notify linked parents only when the band has worsened this run.
+            if _band_worsened(old_band, pred["risk_band"]):
+                notify_safe(
+                    notify_risk_alert,
+                    client,
+                    child["id"],
+                    new_band=pred["risk_band"],
+                    old_band=old_band,
+                    prediction_id=stored.get("id"),
+                )
         except Exception as exc:  # noqa: BLE001 — one bad child shouldn't abort the batch
             failed.append({"child_id": child["id"], "error": str(exc)})
 

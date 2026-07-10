@@ -590,6 +590,7 @@ function CreateQuizModal({
   onCreated: () => void
 }) {
   const [title, setTitle] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([emptyQuestion()])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -620,6 +621,7 @@ function CreateQuizModal({
 
   function reset() {
     setTitle('')
+    setDueDate('')
     setQuestions([emptyQuestion()])
   }
 
@@ -632,7 +634,12 @@ function CreateQuizModal({
         ...q,
         options: q.type === 'mcq' ? (q.options ?? []).filter((o) => o.trim() !== '') : null,
       }))
-      await apiPost('/quizzes', { title, subject_id: subjectId, questions: cleaned })
+      await apiPost('/quizzes', {
+        title,
+        subject_id: subjectId,
+        questions: cleaned,
+        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      })
       reset()
       onClose()
       onCreated()
@@ -648,6 +655,10 @@ function CreateQuizModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Quiz title">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+        </Field>
+
+        <Field label="Due date (optional)" hint="Parents are reminded when a quiz is due within 3 days and not yet attempted.">
+          <Input type="datetime-local" className="dark:[color-scheme:dark]" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </Field>
 
         <div className="space-y-4">

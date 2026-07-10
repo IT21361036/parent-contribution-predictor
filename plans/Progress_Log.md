@@ -7,6 +7,77 @@ entry at the top each session; don't rewrite history.
 
 ---
 
+## 2026-07-10 (Notifications + Report cards — built)
+
+Built the designed & approved feature from
+`2026-07-10-notifications-report-cards-design.md`, following its 8-step build
+order. Two features on top of the finished 8 phases.
+
+**DB (migration written, NOT yet applied — Supabase MCP unauthorized this
+session):** new `notifications` + `report_cards` tables, `quizzes.due_date`
+column, private `report-cards` storage bucket. Added to `supabase/schema.sql`
+(fresh setups) **and** a standalone idempotent
+`supabase/migrations/2026-07-10-notifications-report-cards.sql` to run against
+the existing project. **Action for the user:** run that migration in the
+Supabase SQL editor; if the bucket doesn't stick, create `report-cards`
+(Public = off) manually — same lesson as `materials`.
+
+**Backend:**
+- New `app/services/notifications.py` — the single place notification rows are
+  written (`create_notification` with unread-dedup, per-event notifiers, linked-
+  parent lookup, `notify_safe` wrapper so a notification failure never fails the
+  underlying action). Logs, doesn't silently swallow.
+- New `app/routers/notifications.py` — `GET /notifications` (newest-first +
+  `unread` count; runs the **lazy quiz_due** generator first — no cron), `POST
+  /notifications/{id}/read` (the scoring hook), `POST /notifications/read-all`.
+  Parent-only; creation is internal (no public POST).
+- New `app/routers/report_cards.py` — admin upload/list/delete + admin & parent
+  signed-URL download + parent list; ownership checked (`parent_child_link` /
+  `require_admin`). Reuses the materials upload/signed-URL pattern.
+- **Hooks:** `quiz_result` fired in `quizzes.submit_attempt` (results are
+  immediate — auto-graded on submit, no release step); `risk_alert` fired in
+  `predictions.run_predictions` only when the band **worsened** vs the stored one
+  (`_band_worsened`, first-ever prediction never alerts); `report_card` fired on
+  admin upload. `quizzes.create_quiz` now accepts an optional `due_date`.
+- **engagement.py:** `check_frequency` now = history checks **+ count of
+  notifications the linked parent(s) have read** (`_read_notifications_count`).
+  Reading notifications raises PEI via the existing 30% check-ins weight. **No
+  new ML feature, no retrain** — `FEATURES` and the model are untouched
+  (responsiveness folded into check-ins, as designed).
+
+**Frontend:**
+- Types: `AppNotification` (named to avoid the DOM `Notification` global),
+  `NotificationList`, `ReportCard`; `Quiz.due_date`.
+- Admin: a **Report cards** card on the student detail page (term + title + PDF
+  upload → parents notified; list with download/delete).
+- Parent portal: two new sidebar sections — **Notifications** (unread badge on
+  the nav item via a new optional `NavItem.badge`; click marks read + deep-links
+  by type; mark-all-read) and **Report Cards** (per selected child, download).
+  Admin quiz builder got an optional due-date field so `quiz_due` is usable.
+
+**Fix (same session, after first live test):** a quiz set due "now" produced no
+reminder — the lazy generator only notified for quizzes due in `[now, now+3d]`,
+so an already-past-due quiz was skipped. Broadened to also cover **recently
+overdue** unattempted quizzes (`now-30d … now+3d`), wording switches to "Quiz
+overdue"/"was due". That exposed a resurrect loop (generator runs on every GET;
+old dedup only skipped when an *unread* copy existed, so a read reminder
+regenerated on the next load) — added `dedup_any_status` so quiz_due dedups
+against any copy, read or unread. Verified live: 0 → 1 after first GET, stays 1
+on repeat; stored body is clean UTF-8 (the `?`/mojibake in the terminal was just
+the cp1252 console). One unread "Quiz overdue" now sits in the parent account.
+
+**Verified:** frontend `tsc --noEmit` clean; backend imports + all routes
+register (51 total; 9 new notification/report-card routes present);
+`_band_worsened` truth-table checked; quiz_due generation + dedup checked
+against the live DB. **Not yet done (needs the user):** apply
+the DB migration + create the bucket, then a manual end-to-end pass (admin
+uploads a report card → parent sees a notification → opening it marks read →
+engagement check-in count rises; set a quiz due date → parent gets a quiz_due
+reminder). Backend was import/route-verified only — no live DB writes this
+session.
+
+---
+
 ## 2026-07-10 (Phase 7 camera — UX fixes + next-feature design)
 
 **Phase 7 camera, fixes this session (all typecheck-green):**

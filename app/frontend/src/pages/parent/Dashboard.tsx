@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
+  Bell,
   Clock,
   Download,
   Eye,
+  FileText,
   Gauge,
   History,
   LayoutDashboard,
@@ -21,6 +23,7 @@ import {
 import { PortalLayout, type NavItem } from '../../components/PortalLayout'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatCard } from '../../components/ui/StatCard'
 import { FilterChips } from '../../components/ui/FilterChips'
@@ -29,25 +32,38 @@ import { Alert } from '../../components/ui/Alert'
 import { TrendChart } from '../../components/charts/TrendChart'
 import { AttentionPanel } from '../../components/attention/AttentionPanel'
 import { apiGet, apiPost } from '../../lib/api'
+import { useToast } from '../../contexts/ToastContext'
 import { averagePercent, dailyCounts, scoreTrend } from '../../lib/chartData'
 import { RISK_META } from '../../lib/risk'
 import type {
   ActivityAction,
+  AppNotification,
   EngagementIndex,
   EngagementPoint,
   LinkedChild,
   MonitoringSession,
+  NotificationList,
   Prediction,
   QuizAttempt,
+  ReportCard,
   StudentActivity,
 } from '../../lib/types'
 
 const NAV: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'activity', label: 'Activity History', icon: History },
   { key: 'quizzes', label: 'Quiz Scores', icon: ListChecks },
+  { key: 'reportcards', label: 'Report Cards', icon: FileText },
   { key: 'sessions', label: 'Monitoring Sessions', icon: Clock },
 ]
+
+const NOTIFICATION_ICON: Record<AppNotification['type'], LucideIcon> = {
+  quiz_result: ListChecks,
+  quiz_due: Clock,
+  report_card: FileText,
+  risk_alert: ShieldAlert,
+}
 
 const ACTION_ICON: Record<ActivityAction, LucideIcon> = {
   view: Eye,
@@ -58,7 +74,7 @@ const ACTION_ICON: Record<ActivityAction, LucideIcon> = {
 }
 const ACTIONS: ActivityAction[] = ['view', 'download', 'video_watch', 'quiz_start', 'quiz_submit']
 
-type Section = 'overview' | 'activity' | 'quizzes' | 'sessions'
+type Section = 'overview' | 'notifications' | 'activity' | 'quizzes' | 'reportcards' | 'sessions'
 
 export default function ParentDashboard() {
   const [children, setChildren] = useState<LinkedChild[]>([])
@@ -71,6 +87,9 @@ export default function ParentDashboard() {
   const [engagementHistory, setEngagementHistory] = useState<EngagementPoint[]>([])
   const [sessions, setSessions] = useState<MonitoringSession[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [unread, setUnread] = useState(0)
+  const [reportCards, setReportCards] = useState<ReportCard[]>([])
   const [error, setError] = useState<string | null>(null)
 
   async function refreshSessions() {
@@ -81,11 +100,24 @@ export default function ParentDashboard() {
     }
   }
 
+  // Notifications are parent-wide (not per-child). The GET also lazily generates
+  // any due-quiz reminders, so calling it on load keeps the badge current.
+  async function refreshNotifications() {
+    try {
+      const res = await apiGet<NotificationList>('/notifications')
+      setNotifications(res.items)
+      setUnread(res.unread)
+    } catch {
+      // best-effort — a failure here shouldn't block the rest of the portal
+    }
+  }
+
   useEffect(() => {
     apiGet<LinkedChild[]>('/parent/children')
       .then(setChildren)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load linked children'))
     refreshSessions()
+    refreshNotifications()
   }, [])
 
   // A monitoring session brackets the time this parent spends looking at one
@@ -129,8 +161,12 @@ export default function ParentDashboard() {
       setPrediction(null)
       setEngagement(null)
       setEngagementHistory([])
+      setReportCards([])
       return
     }
+    apiGet<ReportCard[]>(`/parent/children/${childId}/report-cards`)
+      .then(setReportCards)
+      .catch(() => setReportCards([]))
     apiGet<StudentActivity[]>(`/parent/children/${childId}/activity`)
       .then(setActivity)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load activity'))
@@ -161,18 +197,51 @@ export default function ParentDashboard() {
     if (next === 'activity') ping('history_check')
   }
 
+  // Clicking a notification marks it read (the engagement scoring hook) and
+  // deep-links to the section it concerns.
+  async function openNotification(n: AppNotification) {
+    if (!n.read_at) {
+      try {
+        await apiPost(`/notifications/${n.id}/read`, {})
+      } catch {
+        // non-blocking — still navigate even if the read call failed
+      }
+      await refreshNotifications()
+    }
+    if (n.child_id && children.some((c) => c.child_id === n.child_id)) {
+      setChildId(n.child_id)
+    }
+    if (n.type === 'report_card') setSection('reportcards')
+    else if (n.type === 'quiz_result' || n.type === 'quiz_due') setSection('quizzes')
+    else if (n.type === 'risk_alert') setSection('overview')
+  }
+
+  async function markAllRead() {
+    try {
+      await apiPost('/notifications/read-all', {})
+    } finally {
+      await refreshNotifications()
+    }
+  }
+
   const selectedChild = children.find((c) => c.child_id === childId)
   const SECTION_TITLE: Record<Section, string> = {
     overview: 'Overview',
+    notifications: 'Notifications',
     activity: 'Activity History',
     quizzes: 'Quiz Scores',
+    reportcards: 'Report Cards',
     sessions: 'Monitoring Sessions',
   }
+
+  const navItems = NAV.map((item) =>
+    item.key === 'notifications' && unread > 0 ? { ...item, badge: unread } : item,
+  )
 
   return (
     <PortalLayout
       title={selectedChild ? `${SECTION_TITLE[section]} — ${selectedChild.full_name}` : 'Parent Portal'}
-      navItems={NAV}
+      navItems={navItems}
       activeKey={section}
       onNavigate={(k) => selectSection(k as Section)}
     >
@@ -203,11 +272,20 @@ export default function ParentDashboard() {
         </div>
       )}
 
-      {!selectedChild && section !== 'sessions' ? (
+      {section === 'notifications' ? (
+        <NotificationsSection
+          items={notifications}
+          unread={unread}
+          onOpen={openNotification}
+          onMarkAll={markAllRead}
+        />
+      ) : section === 'sessions' ? (
+        <SessionsSection sessions={sessions} />
+      ) : !selectedChild ? (
         <EmptyState icon={Users} title="Select a child" description="Choose a linked child above to see their activity and progress." />
       ) : (
         <>
-          {section === 'overview' && selectedChild && (
+          {section === 'overview' && (
             <OverviewSection
               child={selectedChild}
               activity={activity}
@@ -219,10 +297,11 @@ export default function ParentDashboard() {
           )}
           {section === 'activity' && <ActivitySection activity={activity} />}
           {section === 'quizzes' && <QuizzesSection attempts={attempts} />}
+          {section === 'reportcards' && (
+            <ReportCardsSection cards={reportCards} childName={selectedChild.full_name} />
+          )}
         </>
       )}
-
-      {section === 'sessions' && <SessionsSection sessions={sessions} />}
     </PortalLayout>
   )
 }
@@ -562,4 +641,114 @@ function formatDuration(startedAt: string, endedAt: string | null): string {
   const seconds = Math.max(0, (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000)
   if (seconds < 60) return `${Math.round(seconds)}s`
   return `${Math.round(seconds / 60)}m`
+}
+
+function NotificationsSection({
+  items,
+  unread,
+  onOpen,
+  onMarkAll,
+}: {
+  items: AppNotification[]
+  unread: number
+  onOpen: (n: AppNotification) => void
+  onMarkAll: () => void
+}) {
+  return (
+    <Card
+      title="Notifications"
+      description={unread > 0 ? `${unread} unread` : 'All caught up'}
+      actions={
+        unread > 0 ? (
+          <Button variant="ghost" size="sm" onClick={onMarkAll}>
+            Mark all read
+          </Button>
+        ) : undefined
+      }
+    >
+      {items.length === 0 ? (
+        <EmptyState
+          icon={Bell}
+          title="No notifications yet"
+          description="Quiz results, due-quiz reminders, report cards and risk alerts will appear here."
+        />
+      ) : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 -mt-1">
+          {items.map((n, i) => {
+            const Icon = NOTIFICATION_ICON[n.type]
+            const isUnread = !n.read_at
+            return (
+              <li key={n.id}>
+                <button
+                  onClick={() => onOpen(n)}
+                  className={`w-full text-left py-3 flex items-start gap-3 transition-colors animate-row-in ${
+                    isUnread ? '' : 'opacity-60'
+                  }`}
+                  style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                >
+                  <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                    <Icon className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      {n.title}
+                      {isUnread && <span className="size-2 rounded-full bg-red-500 shrink-0" aria-label="unread" />}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{n.body}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
+function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childName: string | null }) {
+  const toast = useToast()
+
+  async function download(rc: ReportCard) {
+    try {
+      const { url } = await apiGet<{ url: string }>(`/parent/report-cards/${rc.id}/download`)
+      window.open(url, '_blank', 'noopener')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not open the report card')
+    }
+  }
+
+  return (
+    <Card title="Report cards" description={childName ? `Report cards for ${childName}` : 'Report cards'}>
+      {cards.length === 0 ? (
+        <EmptyState icon={FileText} title="No report cards yet" description="Report cards uploaded by the school appear here." />
+      ) : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 -mt-1">
+          {cards.map((rc, i) => (
+            <li
+              key={rc.id}
+              className="py-3 flex items-center gap-3 animate-row-in"
+              style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+            >
+              <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                <FileText className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{rc.title || rc.term}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {rc.term} · {new Date(rc.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" icon={<Download className="size-4" />} onClick={() => download(rc)}>
+                Download
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
 }

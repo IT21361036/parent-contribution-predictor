@@ -64,6 +64,7 @@ export interface Quiz {
   subject_id: string | null
   title: string
   total_marks: number | null
+  due_date: string | null
   created_at: string
   // Present only when the requester is an admin.
   attempt_count?: number
@@ -226,4 +227,36 @@ export interface EngagementPoint {
   period: string | null
   engagement_index: number | null
   computed_at: string | null
+}
+
+export type NotificationType = 'quiz_result' | 'quiz_due' | 'report_card' | 'risk_alert'
+
+// Row from GET /notifications (parent, in-app).
+export interface AppNotification {
+  id: string
+  recipient_id: string
+  type: NotificationType
+  title: string
+  body: string
+  child_id: string | null
+  related_id: string | null
+  read_at: string | null
+  created_at: string
+}
+
+// Response from GET /notifications.
+export interface NotificationList {
+  items: AppNotification[]
+  unread: number
+}
+
+// Row from the report_cards table (admin upload / parent view).
+export interface ReportCard {
+  id: string
+  child_id: string
+  term: string
+  title: string | null
+  storage_path: string
+  uploaded_by: string
+  created_at: string
 }
