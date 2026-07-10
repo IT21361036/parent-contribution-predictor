@@ -1,0 +1,76 @@
+{
+  "version": "v1",
+  "model_type": "random_forest",
+  "feature_order": [
+    "quiz_avg_pct",
+    "quiz_count",
+    "material_activity",
+    "avg_watch_percent",
+    "attendance_pct",
+    "prior_avg_score",
+    "monitoring_hours",
+    "check_frequency",
+    "parental_attention"
+  ],
+  "class_labels": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "risk_bands_display_order": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "feature_importances": {
+    "quiz_avg_pct": 0.163,
+    "quiz_count": 0.0969,
+    "material_activity": 0.081,
+    "avg_watch_percent": 0.0889,
+    "attendance_pct": 0.1292,
+    "prior_avg_score": 0.2176,
+    "monitoring_hours": 0.0979,
+    "check_frequency": 0.0667,
+    "parental_attention": 0.0586
+  },
+  "metrics": {
+    "accuracy": 0.7452,
+    "precision_macro": 0.7705,
+    "recall_macro": 0.7394,
+    "f1_macro": 0.7521,
+    "cv_f1_macro_mean": 0.7281,
+    "cv_f1_macro_std": 0.037
+  },
+  "all_model_metrics": {
+    "random_forest": {
+      "accuracy": 0.7452,
+      "precision_macro": 0.7705,
+      "recall_macro": 0.7394,
+      "f1_macro": 0.7521,
+      "cv_f1_macro_mean": 0.7281,
+      "cv_f1_macro_std": 0.037
+    },
+    "logistic_regression": {
+      "accuracy": 0.7333,
+      "precision_macro": 0.7549,
+      "recall_macro": 0.7299,
+      "f1_macro": 0.7404,
+      "cv_f1_macro_mean": 0.7504,
+      "cv_f1_macro_std": 0.0211
+    },
+    "gradient_boosting": {
+      "accuracy": 0.7476,
+      "precision_macro": 0.7655,
+      "recall_macro": 0.7451,
+      "f1_macro": 0.754,
+      "cv_f1_macro_mean": 0.7214,
+      "cv_f1_macro_std": 0.0427
+    }
+  },
+  "trained_on": {
+    "simulated_sl": 1200,
+    "xapi": 480
+  },
+  "n_rows": 1680,
+  "trained_at": "2026-07-09T15:56:41.584292+00:00"
+}

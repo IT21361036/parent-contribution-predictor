@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* Dark mode is toggled by adding .dark to <html> (see ThemeContext), not by
+   the OS preference alone. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Chart colors live in CSS variables so recharts picks up the active theme.
+   Both palettes are validated (CVD separation + contrast) against their own
+   surface — dark is its own selected set, not an automatic flip. */
+:root {
+  color-scheme: light;
+  --chart-grid: #eef0f3;
+  --chart-tick: #94a3b8;
+  --chart-cursor: #c7d2fe;
+  --chart-cursor-fill: #eef2fe;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-tooltip-label: #64748b;
+  --chart-tooltip-item: #334155;
+  --chart-dot-ring: #ffffff;
+  --role-admin: #4f46e5;
+  --role-parent: #d97706;
+  --role-child: #9333ea;
+}
+
+.dark {
+  color-scheme: dark;
+  --chart-grid: #1e293b;
+  --chart-tick: #64748b;
+  --chart-cursor: #475569;
+  --chart-cursor-fill: #1e293b;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-border: #334155;
+  --chart-tooltip-label: #94a3b8;
+  --chart-tooltip-item: #e2e8f0;
+  --chart-dot-ring: #0f172a;
+  --role-admin: #6366f1;
+  --role-parent: #d97706;
+  --role-child: #a855f7;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes login-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-login-card-in {
+  animation: login-card-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes login-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-login-panel-in {
+  animation: login-panel-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+@keyframes nav-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-nav-in {
+  animation: nav-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: page-in 0.35s ease-out both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-in {
+  animation: card-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-row-in {
+  animation: row-in 0.3s ease-out both;
+}
+
+/* Thin, unobtrusive scrollbars for the sidebar/scroll areas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark * {
+  scrollbar-color: #334155 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}

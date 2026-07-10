@@ -1,0 +1,30 @@
+# ---- Secrets (never commit) ----
+.env
+**/.env
+*.local
+
+# ---- Python ----
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# ---- Node / frontend build ----
+node_modules/
+dist/
+dist-ssr/
+*.log
+
+# ---- Large / licensed datasets (444 MB, public UCI/OULAD sets — not redistributed here) ----
+datasets/
+
+# ---- Research proposal (kept out of the public repo) ----
+Final research-Proposal-updated.pdf
+
+# ---- OS / editor ----
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.stackdump
