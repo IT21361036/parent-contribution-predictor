@@ -51,6 +51,27 @@ const GLYPHS = [
   { Icon: Ruler, left: 53, top: 55, size: 30, rot: -14, dur: 7, delay: 1.8, color: 'text-[#22D3EE]' },
 ]
 
+const FEATURES = [
+  {
+    icon: TrendingUp,
+    title: 'Track every step',
+    desc: 'Materials, quizzes and sessions in one clear view.',
+    tint: 'from-[#4F46E5] to-[#9333EA]',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Private attention check',
+    desc: 'The camera runs on your device — never uploaded.',
+    tint: 'from-[#9333EA] to-[#F472B6]',
+  },
+  {
+    icon: Sparkles,
+    title: 'Explainable insights',
+    desc: 'See why the model flags O/L risk, in plain terms.',
+    tint: 'from-[#22D3EE] to-[#4F46E5]',
+  },
+]
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -185,12 +206,24 @@ export default function Login() {
             child through O/L — together.
           </p>
 
-          {/* Floating product-preview chips — a glimpse of what's inside. */}
-          <div className="mt-9 flex flex-wrap gap-3">
-            <PreviewChip icon={TrendingUp} label="Engagement" value="82" tint="from-[#4F46E5] to-[#9333EA]" delay={0.45} />
-            <PreviewChip icon={ShieldCheck} label="O/L risk" value="Low" tint="from-[#9333EA] to-[#F472B6]" delay={0.55} />
-            <PreviewChip icon={Sparkles} label="Insights" value="live" tint="from-[#22D3EE] to-[#4F46E5]" delay={0.65} />
-          </div>
+          {/* What the portal actually does — three honest value pillars. */}
+          <ul className="mt-9 space-y-3.5">
+            {FEATURES.map((f, i) => (
+              <li
+                key={f.title}
+                className="flex items-start gap-3 animate-rise-in"
+                style={{ animationDelay: `${0.45 + i * 0.1}s` }}
+              >
+                <span className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${f.tint} text-white`}>
+                  <f.icon className="size-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-white">{f.title}</p>
+                  <p className="text-xs text-white/60">{f.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Frosted sign-in card. */}
@@ -270,31 +303,3 @@ export default function Login() {
   )
 }
 
-function PreviewChip({
-  icon: Icon,
-  label,
-  value,
-  tint,
-  delay,
-}: {
-  icon: typeof TrendingUp
-  label: string
-  value: string
-  tint: string
-  delay: number
-}) {
-  return (
-    <div
-      className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white/10 hover:border-white/25 animate-rise-in motion-reduce:transform-none"
-      style={{ animationDelay: `${delay}s` }}
-    >
-      <span className={`grid size-9 place-items-center rounded-xl bg-gradient-to-br ${tint} text-white`}>
-        <Icon className="size-4" />
-      </span>
-      <div>
-        <p className="eyebrow text-white/50">{label}</p>
-        <p className="font-display text-lg font-bold leading-none text-white">{value}</p>
-      </div>
-    </div>
-  )
-}
