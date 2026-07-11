@@ -31,6 +31,7 @@ import { Field, Select } from '../../components/ui/Field'
 import { Alert } from '../../components/ui/Alert'
 import { TrendChart } from '../../components/charts/TrendChart'
 import { AttentionPanel } from '../../components/attention/AttentionPanel'
+import { LampGauge } from '../../components/ui/LampGauge'
 import { apiGet, apiPost } from '../../lib/api'
 import { useToast } from '../../contexts/ToastContext'
 import { averagePercent, dailyCounts, scoreTrend } from '../../lib/chartData'
@@ -441,20 +442,13 @@ function EngagementCard({
     }))
 
   return (
-    <Card title="Your engagement index" description="Transparent parental-involvement score">
+    <Card accent eyebrow="the lamp" title="Your engagement index" description="Transparent parental-involvement score">
       {pct == null ? (
         <EmptyState icon={Gauge} title="No engagement recorded yet" />
       ) : (
         <>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-semibold text-slate-800 dark:text-slate-100">{pct}</span>
-            <span className="text-sm text-slate-400 dark:text-slate-500">/ 100</span>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all"
-              style={{ width: `${pct}%` }}
-            />
+          <div className="flex justify-center py-1">
+            <LampGauge value={(pei ?? 0)} />
           </div>
           <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div>
@@ -520,7 +514,7 @@ function ActivitySection({ activity }: { activity: StudentActivity[] }) {
                 className="py-3 flex items-center gap-3 animate-row-in"
                 style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
               >
-                <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                   <Icon className="size-5" />
                 </div>
                 <div className="min-w-0">
@@ -686,7 +680,7 @@ function NotificationsSection({
                   }`}
                   style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                 >
-                  <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                     <Icon className="size-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -733,7 +727,7 @@ function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childNa
               className="py-3 flex items-center gap-3 animate-row-in"
               style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
             >
-              <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+              <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                 <FileText className="size-5" />
               </div>
               <div className="min-w-0 flex-1">

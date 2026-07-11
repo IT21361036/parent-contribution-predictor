@@ -192,7 +192,7 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                       value={materialSearch}
                       onChange={(e) => setMaterialSearch(e.target.value)}
                       placeholder="Search materials"
-                      className="w-44 sm:w-56 rounded-lg border border-[#e2e8f0] dark:border-slate-800 pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4665f2]"
+                      className="w-44 sm:w-56 rounded-lg border border-[#e2e8f0] dark:border-slate-800 pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                     />
                   </div>
                   <Button size="sm" icon={<Upload className="size-4" />} onClick={() => setUploadOpen(true)}>
@@ -225,7 +225,7 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                         style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                          <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                             <Icon className="size-5" />
                           </div>
                           <div className="min-w-0">
@@ -264,7 +264,7 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                         style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                          <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                             <ClipboardList className="size-5" />
                           </div>
                           <div className="min-w-0">
@@ -553,7 +553,7 @@ function UploadMaterialModal({
         <Field label="File">
           <input
             type="file"
-            className="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-[#eef2fe] dark:file:bg-[#1c2a63] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-900 dark:file:text-slate-100 hover:file:bg-[#dbe4fd] dark:hover:file:bg-[#2a3a7a]"
+            className="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-[#EEF2FF] dark:file:bg-[#1E1B4B] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-900 dark:file:text-slate-100 hover:file:bg-[#dbe4fd] dark:hover:file:bg-[#2a3a7a]"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             required
           />
@@ -723,7 +723,7 @@ function CreateQuizModal({
                   <button
                     type="button"
                     onClick={() => addOption(qIndex)}
-                    className="text-xs text-[#4665f2] dark:text-[#93a8ff] hover:text-[#3550d4] dark:hover:text-[#a5b6ff] font-medium"
+                    className="text-xs text-[#4F46E5] dark:text-[#A5B4FC] hover:text-[#4338CA] dark:hover:text-[#C7D2FE] font-medium"
                   >
                     + Add option
                   </button>
@@ -751,7 +751,7 @@ function CreateQuizModal({
         <button
           type="button"
           onClick={() => setQuestions((qs) => [...qs, emptyQuestion()])}
-          className="text-sm text-[#4665f2] dark:text-[#93a8ff] hover:text-[#3550d4] dark:hover:text-[#a5b6ff] font-medium"
+          className="text-sm text-[#4F46E5] dark:text-[#A5B4FC] hover:text-[#4338CA] dark:hover:text-[#C7D2FE] font-medium"
         >
           + Add another question
         </button>

@@ -261,8 +261,8 @@ function ConsentModal({ open, onClose, onAccept }: { open: boolean; onClose: () 
   return (
     <Modal open={open} onClose={onClose} title="Turn on attention verification" size="md">
       <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63]/60 p-3">
-          <Lock className="size-5 shrink-0 text-[#4665f2] dark:text-[#93a8ff]" />
+        <div className="flex items-start gap-3 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B]/60 p-3">
+          <Lock className="size-5 shrink-0 text-[#4F46E5] dark:text-[#A5B4FC]" />
           <p className="text-sm text-slate-700 dark:text-slate-200">
             Your camera runs <span className="font-medium">entirely on this device</span>. It measures only whether
             you're looking at the screen. <span className="font-medium">No video or images are recorded, saved, or

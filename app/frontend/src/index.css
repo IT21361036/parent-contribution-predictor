@@ -41,8 +41,32 @@
 
 body {
   margin: 0;
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-color: #f4f5fb; /* Aurora cool canvas */
+  color: #1e1b3a;
+}
+
+.dark body {
+  background-color: #0e1726; /* deep ink */
+  color: #e2e8f0;
+}
+
+/* Display + data voices from the Lamplight type system. */
+.font-display {
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+.font-mono-ui {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+/* Mono eyebrow: the small measured label above section titles. */
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 @keyframes toast-in {
@@ -146,6 +170,132 @@ body {
 
 .animate-row-in {
   animation: row-in 0.3s ease-out both;
+}
+
+/* Login (Aurora Glass) motion set — atmospheric + entrance, transform/opacity
+   only. The prefers-reduced-motion guard below neutralizes all of these. */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(4%, -3%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-3%, 3%, 0) scale(0.96);
+  }
+}
+.animate-aurora {
+  animation: aurora-drift 20s ease-in-out infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise-in {
+  animation: rise-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Ambient light motes drifting up through the aurora background. */
+@keyframes drift-up {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-160px);
+    opacity: 0;
+  }
+}
+.animate-drift-up {
+  animation: drift-up linear infinite;
+}
+
+/* Floating study glyphs (books, formulas…) bobbing gently behind the aurora. */
+@keyframes float-glyph {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-26px) rotate(7deg) scale(1.08);
+  }
+}
+.animate-float-glyph {
+  animation: float-glyph ease-in-out infinite;
+}
+
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.animate-gradient-text {
+  background-size: 200% auto;
+  animation: gradient-pan 6s ease-in-out infinite;
+}
+
+/* Signature: the parental-engagement "lamp" — a soft breathing glow whose
+   presence signals attentiveness. Used on the engagement gauge and the unread
+   notification badge. Respects reduced-motion. */
+@keyframes lamp-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+.animate-lamp-glow {
+  animation: lamp-glow 3.2s ease-in-out infinite;
+}
+
+/* Unread-notification badge: a restrained pulse that says "new" without nagging.
+   Transform/opacity only; the reduced-motion guard below neutralizes it. */
+@keyframes badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(201, 85, 59, 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(201, 85, 59, 0);
+  }
+}
+.animate-badge-pulse {
+  animation: badge-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 /* Thin, unobtrusive scrollbars for the sidebar/scroll areas */

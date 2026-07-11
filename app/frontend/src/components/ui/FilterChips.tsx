@@ -22,7 +22,7 @@ export function FilterChips<T extends string>({
             onClick={() => onChange(isActive ? null : opt)}
             className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors cursor-pointer ${
               isActive
-                ? 'border-[#4665f2] bg-[#eef2fe] dark:bg-[#1c2a63] text-slate-900 dark:text-slate-100'
+                ? 'border-[#4F46E5] bg-[#EEF2FF] dark:bg-[#1E1B4B] text-slate-900 dark:text-slate-100'
                 : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
           >

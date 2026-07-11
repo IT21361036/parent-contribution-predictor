@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 
-export type Tone = 'slate' | 'indigo' | 'blue' | 'emerald' | 'violet' | 'amber' | 'red' | 'green'
+export type Tone =
+  | 'slate' | 'indigo' | 'blue' | 'emerald' | 'violet' | 'amber' | 'red' | 'green'
+  | 'grove' | 'gold' | 'clay'
 
 const TONES: Record<Tone, string> = {
   slate: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
@@ -11,6 +13,9 @@ const TONES: Record<Tone, string> = {
   amber: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
   red: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300',
   green: 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300',
+  grove: 'bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4338CA] dark:text-[#A5B4FC]',
+  gold: 'bg-[#EDE9FE] dark:bg-[#2E1065] text-[#6D28D9] dark:text-[#C084FC]',
+  clay: 'bg-[#F7E2DB] dark:bg-[#3A2018] text-[#B0472D] dark:text-[#E08E75]',
 }
 
 export function Badge({ tone = 'slate', children }: { tone?: Tone; children: ReactNode }) {

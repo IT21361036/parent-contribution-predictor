@@ -290,7 +290,7 @@ function ReportCardsCard({ childId }: { childId: string }) {
         ) : (
           cards.map((rc) => (
             <li key={rc.id} className="py-3 flex items-center gap-3">
-              <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+              <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                 <FileText className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -303,7 +303,7 @@ function ReportCardsCard({ childId }: { childId: string }) {
               </div>
               <button
                 onClick={() => download(rc)}
-                className="text-slate-400 hover:text-[#4665f2] dark:hover:text-[#93a8ff] p-1.5 rounded-lg hover:bg-[#eef2fe] dark:hover:bg-[#1c2a63] transition-colors"
+                className="text-slate-400 hover:text-[#4F46E5] dark:hover:text-[#A5B4FC] p-1.5 rounded-lg hover:bg-[#EEF2FF] dark:hover:bg-[#1E1B4B] transition-colors"
                 title="Download"
               >
                 <Download className="size-4" />

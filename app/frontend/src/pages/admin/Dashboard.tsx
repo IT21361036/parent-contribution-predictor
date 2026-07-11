@@ -158,7 +158,7 @@ export default function AdminDashboard() {
               onClick={() => setRoleFilter(active ? null : r)}
               style={{ animationDelay: `${i * 60}ms` }}
               className={`animate-card-in relative overflow-hidden text-left rounded-xl border p-5 pb-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${
-                active ? 'border-[#4665f2] ring-2 ring-[#4665f2]/30 bg-white dark:bg-slate-900' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                active ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/30 bg-white dark:bg-slate-900' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search name or email"
-                className="w-56 rounded-lg border border-[#e2e8f0] dark:border-slate-800 pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4665f2]"
+                className="w-56 rounded-lg border border-[#e2e8f0] dark:border-slate-800 pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
               />
             </div>
           }
@@ -241,14 +241,14 @@ export default function AdminDashboard() {
                           <button
                             onClick={() => setViewingUser(u)}
                             title="View"
-                            className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#3550d4] dark:hover:text-[#a5b6ff] hover:bg-[#eef2fe] dark:hover:bg-[#1c2a63] transition-colors"
+                            className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#4338CA] dark:hover:text-[#C7D2FE] hover:bg-[#EEF2FF] dark:hover:bg-[#1E1B4B] transition-colors"
                           >
                             <Eye className="size-4" />
                           </button>
                           <button
                             onClick={() => setEditingUser(u)}
                             title="Edit"
-                            className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#3550d4] dark:hover:text-[#a5b6ff] hover:bg-[#eef2fe] dark:hover:bg-[#1c2a63] transition-colors"
+                            className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#4338CA] dark:hover:text-[#C7D2FE] hover:bg-[#EEF2FF] dark:hover:bg-[#1E1B4B] transition-colors"
                           >
                             <Pencil className="size-4" />
                           </button>

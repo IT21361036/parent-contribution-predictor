@@ -155,18 +155,18 @@ export default function ChildDashboard() {
                     onClick={() => setSubjectId(active ? '' : s.id)}
                     style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
                     className={`animate-card-in text-left rounded-xl border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${
-                      active ? 'border-[#4665f2] bg-[#eef2fe] dark:bg-[#1c2a63] ring-2 ring-[#4665f2]/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                      active ? 'border-[#4F46E5] bg-[#EEF2FF] dark:bg-[#1E1B4B] ring-2 ring-[#4F46E5]/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
                     }`}
                   >
                     <div
                       className={`size-9 rounded-lg flex items-center justify-center mb-2 ${
-                        active ? 'bg-[#4665f2] text-white' : 'bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff]'
+                        active ? 'bg-[#4F46E5] text-white' : 'bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC]'
                       }`}
                     >
                       <BookOpen className="size-5" />
                     </div>
                     <p className={`text-sm font-semibold truncate ${active ? 'text-slate-900 dark:text-slate-100' : 'text-slate-800 dark:text-slate-200'}`}>{s.name}</p>
-                    <p className={`text-xs mt-0.5 ${active ? 'text-[#4665f2] dark:text-[#93a8ff]' : 'text-slate-400 dark:text-slate-500'}`}>
+                    <p className={`text-xs mt-0.5 ${active ? 'text-[#4F46E5] dark:text-[#A5B4FC]' : 'text-slate-400 dark:text-slate-500'}`}>
                       {s.grade_level ?? 'All grades'}
                     </p>
                   </button>
@@ -267,7 +267,7 @@ function MaterialRow({ material, onActivityLogged }: { material: LearningMateria
     <li className="py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+          <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
             <Icon className="size-5" />
           </div>
           <div className="min-w-0">
@@ -321,7 +321,7 @@ function QuizzesCard({
             return (
               <li key={q.id} className="py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-9 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                     <ListChecks className="size-5" />
                   </div>
                   <div className="min-w-0">
@@ -418,15 +418,15 @@ function QuizTakerModal({
                             {({ checked }) => (
                               <div
                                 className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                                  checked ? 'border-[#4665f2] bg-[#eef2fe] dark:bg-[#1c2a63] text-slate-900 dark:text-slate-100' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                  checked ? 'border-[#4F46E5] bg-[#EEF2FF] dark:bg-[#1E1B4B] text-slate-900 dark:text-slate-100' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                                 }`}
                               >
                                 <span
                                   className={`size-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                    checked ? 'border-[#4665f2]' : 'border-slate-300 dark:border-slate-600'
+                                    checked ? 'border-[#4F46E5]' : 'border-slate-300 dark:border-slate-600'
                                   }`}
                                 >
-                                  {checked && <span className="size-2 rounded-full bg-[#4665f2]" />}
+                                  {checked && <span className="size-2 rounded-full bg-[#4F46E5]" />}
                                 </span>
                                 {opt}
                               </div>
@@ -507,7 +507,7 @@ function ProgressSection({ activity, attempts }: { activity: StudentActivity[]; 
                     className="py-2.5 flex items-center gap-3 animate-row-in"
                     style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                   >
-                    <div className="size-8 rounded-lg bg-[#eef2fe] dark:bg-[#1c2a63] text-[#4665f2] dark:text-[#93a8ff] flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B] text-[#4F46E5] dark:text-[#A5B4FC] flex items-center justify-center shrink-0">
                       <Icon className="size-4" />
                     </div>
                     <div className="min-w-0">
