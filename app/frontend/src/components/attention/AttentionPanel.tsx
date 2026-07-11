@@ -8,6 +8,17 @@ import { Modal } from '../ui/Modal'
 import { apiPost } from '../../lib/api'
 import { useAttention, type AttentionResult } from '../../lib/attention'
 
+// A verification run must accrue at least this much monitored time before the
+// parent can stop it — so a session reflects real observation, not a quick
+// on/off. Enforced once genuine tracking starts (loading/liveness can be
+// cancelled). 3 minutes.
+const MIN_MONITOR_SECONDS = 180
+
+function formatCountdown(seconds: number): string {
+  const s = Math.max(0, seconds)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 // Phase 7 — parental attention verification. All video processing is client-side
 // (MediaPipe in the browser via useAttention); only the accumulated seconds are
 // POSTed on stop. Raw frames never leave the device.
@@ -165,6 +176,10 @@ function LiveStatus({
   onStop: () => void
 }) {
   const pct = totalSeconds > 0 ? Math.round((attentiveSeconds / totalSeconds) * 100) : 0
+  // Lock the stop control until the minimum monitored time is reached — but only
+  // once tracking has started, so camera startup/liveness can still be cancelled.
+  const locked = phase === 'tracking' && totalSeconds < MIN_MONITOR_SECONDS
+  const remaining = MIN_MONITOR_SECONDS - totalSeconds
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -175,10 +190,24 @@ function LiveStatus({
           </span>
           <Video className="size-4 text-slate-400" /> Camera on
         </span>
-        <Button size="sm" variant="secondary" icon={<EyeOff className="size-4" />} onClick={onStop}>
-          Stop camera
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={locked ? <Lock className="size-4" /> : <EyeOff className="size-4" />}
+          onClick={onStop}
+          disabled={locked}
+          title={locked ? 'Keep observing a little longer before stopping' : undefined}
+        >
+          {locked ? `Stop in ${formatCountdown(remaining)}` : 'Stop camera'}
         </Button>
       </div>
+
+      {locked && (
+        <p className="flex items-center gap-2 rounded-lg bg-[#EEF2FF] dark:bg-[#1E1B4B]/60 px-3 py-2 text-xs text-[#4F46E5] dark:text-[#A5B4FC]">
+          <Lock className="size-3.5 shrink-0" />
+          Please keep observing — you can stop in {formatCountdown(remaining)} (minimum 3 min per session).
+        </p>
+      )}
 
       {phase === 'loading' && (
         <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -275,8 +304,11 @@ function ConsentModal({ open, onClose, onAccept }: { open: boolean; onClose: () 
             confirms a real person.
           </li>
           <li className="flex items-center gap-2">
-            <Video className="size-4 text-slate-400 shrink-0" /> A visible indicator shows whenever the camera is on,
-            and you can stop it at any time.
+            <Video className="size-4 text-slate-400 shrink-0" /> A visible indicator shows whenever the camera is on.
+          </li>
+          <li className="flex items-center gap-2">
+            <Lock className="size-4 text-slate-400 shrink-0" /> To reflect real observation, each run stays on for a
+            minimum of 3 minutes before you can stop it.
           </li>
           <li className="flex items-center gap-2">
             <Eye className="size-4 text-slate-400 shrink-0" /> Declining keeps monitoring fully active — just without

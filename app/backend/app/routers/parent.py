@@ -108,6 +108,54 @@ def list_sessions(user: CurrentUser = Depends(require_parent)):
     return result.data
 
 
+@router.get("/attention-history")
+def attention_history(user: CurrentUser = Depends(require_parent)):
+    """Every past attention-verification run for this parent, newest first, with
+    the child's name attached — a persistent log so a parent who forgets can see
+    how much they've been observing over time."""
+    client = get_service_client()
+    sessions = (
+        client.table("monitoring_sessions")
+        .select("id, child_id, started_at")
+        .eq("parent_id", user.id)
+        .execute()
+        .data
+    )
+    if not sessions:
+        return []
+
+    by_id = {s["id"]: s for s in sessions}
+    scores = (
+        client.table("attention_scores")
+        .select("*")
+        .in_("session_id", list(by_id))
+        .order("computed_at", desc=True)
+        .execute()
+        .data
+    )
+    child_ids = list({s["child_id"] for s in sessions})
+    profiles = client.table("profiles").select("id, full_name").in_("id", child_ids).execute().data
+    names = {p["id"]: p.get("full_name") for p in profiles}
+
+    out = []
+    for sc in scores:
+        sess = by_id.get(sc["session_id"])
+        if not sess:
+            continue
+        out.append(
+            {
+                "id": sc["id"],
+                "child_id": sess["child_id"],
+                "child_name": names.get(sess["child_id"]),
+                "attention_score": sc.get("attention_score"),
+                "attentive_seconds": sc.get("attentive_seconds"),
+                "total_seconds": sc.get("total_seconds"),
+                "recorded_at": sc.get("computed_at") or sess.get("started_at"),
+            }
+        )
+    return out
+
+
 @router.post("/sessions", status_code=201)
 def start_session(body: StartSessionRequest, user: CurrentUser = Depends(require_parent)):
     client = get_service_client()

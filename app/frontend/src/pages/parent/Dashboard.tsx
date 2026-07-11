@@ -13,6 +13,7 @@ import {
   ListChecks,
   MousePointerClick,
   PlayCircle,
+  ScanFace,
   Send,
   ShieldAlert,
   TrendingDown,
@@ -39,6 +40,7 @@ import { RISK_META } from '../../lib/risk'
 import type {
   ActivityAction,
   AppNotification,
+  AttentionHistoryItem,
   EngagementIndex,
   EngagementPoint,
   LinkedChild,
@@ -57,6 +59,7 @@ const NAV: NavItem[] = [
   { key: 'quizzes', label: 'Quiz Scores', icon: ListChecks },
   { key: 'reportcards', label: 'Report Cards', icon: FileText },
   { key: 'sessions', label: 'Monitoring Sessions', icon: Clock },
+  { key: 'attention', label: 'Attention History', icon: ScanFace },
 ]
 
 const NOTIFICATION_ICON: Record<AppNotification['type'], LucideIcon> = {
@@ -75,7 +78,7 @@ const ACTION_ICON: Record<ActivityAction, LucideIcon> = {
 }
 const ACTIONS: ActivityAction[] = ['view', 'download', 'video_watch', 'quiz_start', 'quiz_submit']
 
-type Section = 'overview' | 'notifications' | 'activity' | 'quizzes' | 'reportcards' | 'sessions'
+type Section = 'overview' | 'notifications' | 'activity' | 'quizzes' | 'reportcards' | 'sessions' | 'attention'
 
 export default function ParentDashboard() {
   const [children, setChildren] = useState<LinkedChild[]>([])
@@ -91,7 +94,16 @@ export default function ParentDashboard() {
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [unread, setUnread] = useState(0)
   const [reportCards, setReportCards] = useState<ReportCard[]>([])
+  const [attentionHistory, setAttentionHistory] = useState<AttentionHistoryItem[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  async function refreshAttentionHistory() {
+    try {
+      setAttentionHistory(await apiGet<AttentionHistoryItem[]>('/parent/attention-history'))
+    } catch {
+      // best-effort — history is informational, don't block the portal
+    }
+  }
 
   async function refreshSessions() {
     try {
@@ -119,6 +131,7 @@ export default function ParentDashboard() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load linked children'))
     refreshSessions()
     refreshNotifications()
+    refreshAttentionHistory()
   }, [])
 
   // A monitoring session brackets the time this parent spends looking at one
@@ -196,6 +209,7 @@ export default function ParentDashboard() {
     setSection(next)
     ping('page_view')
     if (next === 'activity') ping('history_check')
+    if (next === 'attention') refreshAttentionHistory()
   }
 
   // Clicking a notification marks it read (the engagement scoring hook) and
@@ -233,6 +247,7 @@ export default function ParentDashboard() {
     quizzes: 'Quiz Scores',
     reportcards: 'Report Cards',
     sessions: 'Monitoring Sessions',
+    attention: 'Attention History',
   }
 
   const navItems = NAV.map((item) =>
@@ -282,6 +297,8 @@ export default function ParentDashboard() {
         />
       ) : section === 'sessions' ? (
         <SessionsSection sessions={sessions} />
+      ) : section === 'attention' ? (
+        <AttentionHistorySection items={attentionHistory} />
       ) : !selectedChild ? (
         <EmptyState icon={Users} title="Select a child" description="Choose a linked child above to see their activity and progress." />
       ) : (
@@ -571,6 +588,91 @@ function QuizzesSection({ attempts }: { attempts: QuizAttempt[] }) {
         </div>
       )}
     </Card>
+  )
+}
+
+function formatSeconds(total: number): string {
+  if (total < 60) return `${Math.round(total)}s`
+  const m = Math.floor(total / 60)
+  const s = Math.round(total % 60)
+  return s ? `${m}m ${s}s` : `${m}m`
+}
+
+function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
+  const rows = items
+    .filter((i) => (i.total_seconds ?? 0) > 0)
+    .map((i) => ({ ...i, pct: Math.round(((i.attentive_seconds ?? 0) / (i.total_seconds || 1)) * 100) }))
+  const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.pct, 0) / rows.length) : null
+  const totalMin = Math.round(items.reduce((s, i) => s + (i.total_seconds ?? 0), 0) / 60)
+  // Oldest → newest for the trend line.
+  const trend = [...rows]
+    .reverse()
+    .map((r) => ({ label: r.recorded_at ? new Date(r.recorded_at).toLocaleDateString() : '', value: r.pct }))
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { icon: ScanFace, label: 'Runs logged', value: items.length, accent: 'blue' as const },
+          { icon: Eye, label: 'Avg attentive', value: avg != null ? `${avg}%` : '—', accent: 'teal' as const },
+          { icon: Clock, label: 'Total observed', value: `${totalMin}m`, accent: 'violet' as const },
+        ].map((s, i) => (
+          <StatCard
+            key={s.label}
+            icon={s.icon}
+            label={s.label}
+            value={s.value}
+            accent={s.accent}
+            className="animate-card-in"
+            style={{ animationDelay: `${i * 60}ms` }}
+          />
+        ))}
+      </div>
+
+      <Card accent eyebrow="the record" title="Attention over time" description="Every verified observation run, newest first">
+        {trend.length >= 2 && (
+          <div className="mb-5">
+            <TrendChart data={trend} mode="line" height={200} yDomain={[0, 100]} valueFormatter={(v) => `${v}%`} />
+          </div>
+        )}
+        {items.length === 0 ? (
+          <EmptyState
+            icon={ScanFace}
+            title="No attention runs logged yet"
+            description="Turn on “Verify my attention” during a monitoring session — each run is recorded here so you can track your observation over time."
+          />
+        ) : (
+          <div className="overflow-x-auto -mx-5 -mb-5">
+            <table className="w-full text-sm">
+              <thead className="text-slate-500 dark:text-slate-400 text-left">
+                <tr>
+                  <th className="px-5 py-2 font-medium">When</th>
+                  <th className="px-5 py-2 font-medium">Child</th>
+                  <th className="px-5 py-2 font-medium">Attentive</th>
+                  <th className="px-5 py-2 font-medium">Duration</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {rows.map((r) => (
+                  <tr key={r.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
+                    <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">
+                      {r.recorded_at ? new Date(r.recorded_at).toLocaleString() : '—'}
+                    </td>
+                    <td className="px-5 py-2.5 text-slate-600 dark:text-slate-300">{r.child_name ?? '—'}</td>
+                    <td className="px-5 py-2.5">
+                      <Badge tone={r.pct >= 75 ? 'emerald' : r.pct >= 40 ? 'amber' : 'red'}>{r.pct}%</Badge>
+                    </td>
+                    <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">
+                      {formatSeconds(r.total_seconds ?? 0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
   )
 }
 

@@ -181,6 +181,17 @@ export interface MonitoringSession {
   liveness_passed: boolean | null
 }
 
+// One past attention-verification run (GET /parent/attention-history).
+export interface AttentionHistoryItem {
+  id: string
+  child_id: string
+  child_name: string | null
+  attention_score: number | null
+  attentive_seconds: number | null
+  total_seconds: number | null
+  recorded_at: string | null
+}
+
 // Row from GET /admin/students/roster — one child + latest prediction summary.
 export interface RosterRow {
   child_id: string
