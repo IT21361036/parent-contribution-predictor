@@ -3,6 +3,8 @@ import {
   Atom,
   BookOpen,
   Calculator,
+  Eye,
+  EyeOff,
   FlaskConical,
   Globe,
   GraduationCap,
@@ -22,9 +24,9 @@ import { useAuth } from '../contexts/AuthContext'
 // the first impression is consistent and high-impact.
 const fieldClass =
   'flex flex-col gap-1 rounded-xl border border-white/15 bg-white/5 px-3.5 py-2.5 backdrop-blur-sm transition-colors focus-within:border-white/40 focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-[#22D3EE]/40'
-const labelClass = 'eyebrow text-white/60'
+const labelClass = 'eyebrow text-white/75'
 const inputClass =
-  'border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-white/40'
+  'w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-white/55'
 
 // Deterministic mote field (no Math.random → stable across renders, no flicker).
 const PARTICLES = Array.from({ length: 16 }, (_, i) => ({
@@ -52,6 +54,7 @@ const GLYPHS = [
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const { signInWithPassword } = useAuth()
@@ -200,7 +203,7 @@ export default function Login() {
           <h2 className="font-display text-2xl font-extrabold text-white animate-rise-in" style={{ animationDelay: '0.15s' }}>
             Welcome back
           </h2>
-          <p className="mt-1.5 text-sm text-white/60 animate-rise-in" style={{ animationDelay: '0.22s' }}>
+          <p className="mt-1.5 text-sm text-white/70 animate-rise-in" style={{ animationDelay: '0.22s' }}>
             Sign in with the account your school gave you.
           </p>
 
@@ -220,17 +223,28 @@ export default function Login() {
             </div>
             <div className={`${fieldClass} animate-rise-in`} style={{ animationDelay: '0.38s' }}>
               <label htmlFor="password" className={labelClass}>Password</label>
-              <input
-                id="password"
-                type="password"
-                className={inputClass}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                minLength={6}
-                required
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  id="password"
+                  type={showPw ? 'text' : 'password'}
+                  className={inputClass}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  minLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPw}
+                  className="shrink-0 rounded-md p-0.5 text-white/60 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]"
+                >
+                  {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -242,14 +256,14 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-gradient-to-r from-[#4F46E5] via-[#7C3AED] to-[#9333EA] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#7C3AED]/40 transition-all hover:brightness-110 hover:-translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A1F] active:scale-[0.98] disabled:opacity-60 motion-reduce:transform-none animate-rise-in"
+              className="w-full rounded-xl bg-gradient-to-r from-[#4F46E5] via-[#7C3AED] to-[#9333EA] bg-[length:200%_auto] animate-gradient-text px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#7C3AED]/40 transition-all hover:-translate-y-px hover:shadow-[0_0_28px_rgba(124,58,237,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A1F] active:scale-[0.98] disabled:opacity-60 motion-reduce:transform-none animate-rise-in"
               style={{ animationDelay: '0.46s' }}
             >
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-8 text-center eyebrow text-white/40">Parental Monitoring · Final Year Project</p>
+          <p className="mt-8 text-center eyebrow text-white/55">Parental Monitoring · Final Year Project</p>
         </div>
       </div>
     </div>
