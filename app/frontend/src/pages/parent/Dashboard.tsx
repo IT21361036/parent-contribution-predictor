@@ -446,6 +446,34 @@ function PredictionCard({ prediction }: { prediction: Prediction | null }) {
         </ul>
       </div>
 
+      <div className="mt-5">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">
+          Risk scale
+        </p>
+        <div className="flex gap-1.5">
+          {(['low', 'medium', 'high'] as const).map((band) => {
+            const active = prediction.risk_band === band
+            const activeBar = band === 'low' ? 'bg-emerald-500' : band === 'medium' ? 'bg-amber-500' : 'bg-red-500'
+            return (
+              <div key={band} className="flex-1">
+                <div className={`h-2 rounded-full transition-colors ${active ? activeBar : 'bg-slate-100 dark:bg-slate-800'}`} />
+                <p
+                  className={`mt-1.5 text-center text-xs capitalize ${
+                    active ? 'font-semibold text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  {RISK_META[band].label}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+          Staying engaged — monitoring sessions, check-ins and attention — is the lever most in your control to help
+          keep this band low.
+        </p>
+      </div>
+
       {prediction.model_version && (
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
           Model {prediction.model_version} · {new Date(prediction.generated_at).toLocaleDateString()}
