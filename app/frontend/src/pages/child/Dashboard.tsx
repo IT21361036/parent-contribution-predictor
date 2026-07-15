@@ -233,6 +233,7 @@ function MaterialsCard({
 
 function MaterialRow({ material, onActivityLogged }: { material: LearningMaterial; onActivityLogged: () => void }) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [docUrl, setDocUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const Icon = MATERIAL_ICON[material.type]
 
@@ -244,7 +245,7 @@ function MaterialRow({ material, onActivityLogged }: { material: LearningMateria
         setVideoUrl(url)
         return
       }
-      window.open(url, '_blank', 'noopener,noreferrer')
+      setDocUrl(url) // view in an in-app modal instead of navigating away
       await apiPost('/activity', { material_id: material.id, action: 'download' })
       onActivityLogged()
     } catch (err) {
@@ -296,6 +297,25 @@ function MaterialRow({ material, onActivityLogged }: { material: LearningMateria
           onPause={logWatchProgress}
           onEnded={logWatchProgress}
         />
+      )}
+      {docUrl && (
+        <Modal open onClose={() => setDocUrl(null)} title={material.title} size="xl">
+          <iframe
+            src={docUrl}
+            title={material.title}
+            className="w-full h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
+          />
+          <div className="mt-3 flex justify-end">
+            <a
+              href={docUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#4F46E5] dark:text-[#A5B4FC] hover:underline"
+            >
+              Open in new tab ↗
+            </a>
+          </div>
+        </Modal>
       )}
     </li>
   )
