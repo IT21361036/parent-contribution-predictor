@@ -28,6 +28,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { BarsChart } from '../../components/charts/BarsChart'
 import { useToast } from '../../contexts/ToastContext'
 import { apiGet, apiPost, apiUpload } from '../../lib/api'
+import { Pagination, usePagination } from '../../components/ui/Pagination'
 import type {
   LearningMaterial,
   MaterialType,
@@ -128,6 +129,8 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
       return m.title.toLowerCase().includes(q)
     })
   }, [materials, materialSearch, materialType])
+  const materialsPg = usePagination(filteredMaterials, 8)
+  const quizzesPg = usePagination(quizzes, 8)
 
   return (
     <>
@@ -215,8 +218,9 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                   }
                 />
               ) : (
+                <>
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredMaterials.map((m, i) => {
+                  {materialsPg.pageItems.map((m, i) => {
                     const Icon = MATERIAL_ICON[m.type]
                     return (
                       <li
@@ -240,6 +244,8 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                     )
                   })}
                 </ul>
+                <Pagination page={materialsPg.page} totalPages={materialsPg.totalPages} onChange={materialsPg.setPage} />
+                </>
               )}
             </Card>
           ) : (
@@ -256,8 +262,9 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                 {quizzes.length === 0 ? (
                   <EmptyState icon={ClipboardList} title="No quizzes yet" description="Build a quiz with multiple-choice or short-answer questions." />
                 ) : (
+                  <>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {quizzes.map((q, i) => (
+                    {quizzesPg.pageItems.map((q, i) => (
                       <li
                         key={q.id}
                         className="py-3 flex items-center justify-between gap-3 animate-row-in"
@@ -291,6 +298,8 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                       </li>
                     ))}
                   </ul>
+                  <Pagination page={quizzesPg.page} totalPages={quizzesPg.totalPages} onChange={quizzesPg.setPage} />
+                  </>
                 )}
               </Card>
 

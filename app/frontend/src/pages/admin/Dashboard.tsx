@@ -703,6 +703,8 @@ function RiskSection() {
     }
   }
 
+  const rosterPg = usePagination(roster, 10)
+
   return (
     <div className="space-y-6">
       <Card
@@ -717,7 +719,8 @@ function RiskSection() {
         {roster.length === 0 ? (
           <EmptyState icon={ShieldAlert} title="No child accounts" description="Create child accounts to generate predictions." />
         ) : (
-          <div className="overflow-x-auto -mx-5 -mb-5">
+          <div className="-mx-5 -mb-5">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 text-left">
                 <tr>
@@ -728,7 +731,7 @@ function RiskSection() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {roster.map((r) => (
+                {rosterPg.pageItems.map((r) => (
                   <tr
                     key={r.child_id}
                     tabIndex={0}
@@ -764,6 +767,10 @@ function RiskSection() {
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="px-5 pb-1">
+              <Pagination page={rosterPg.page} totalPages={rosterPg.totalPages} onChange={rosterPg.setPage} />
+            </div>
           </div>
         )}
       </Card>
