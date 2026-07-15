@@ -67,13 +67,28 @@ def upload_material(
 def get_download_url(material_id: str, _: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
     material = (
-        client.table("learning_materials").select("storage_path").eq("id", material_id).single().execute().data
+        client.table("learning_materials")
+        .select("storage_path")
+        .eq("id", material_id)
+        .maybe_single()
+        .execute()
+        .data
     )
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
-    signed = client.storage.from_(STORAGE_BUCKET).create_signed_url(material["storage_path"], 3600)
+    # The object can be absent (e.g. uploaded before the bucket existed, or later
+    # removed). Turn the storage error into a clean 404 — an uncaught 500 escapes
+    # CORS and shows in the browser as a phantom CORS failure instead of the real
+    # problem.
+    try:
+        signed = client.storage.from_(STORAGE_BUCKET).create_signed_url(material["storage_path"], 3600)
+    except Exception as exc:  # noqa: BLE001 — surface a usable message, not a 500
+        raise HTTPException(
+            status_code=404, detail="File is missing from storage — please re-upload this material."
+        ) from exc
+
     url = signed.get("signedURL") or signed.get("signedUrl")
     if not url:
-        raise HTTPException(status_code=500, detail="Failed to generate download link")
+        raise HTTPException(status_code=404, detail="File is missing from storage — please re-upload this material.")
     return {"url": url}
