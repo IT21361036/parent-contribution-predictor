@@ -10,6 +10,7 @@ logger = logging.getLogger("app")
 from app.routers import (
     activity,
     admin,
+    analytics,
     engagement,
     health,
     materials,
@@ -46,6 +47,7 @@ app.include_router(engagement.router)
 app.include_router(students.router)
 app.include_router(notifications.router)
 app.include_router(report_cards.router)
+app.include_router(analytics.router)
 
 
 @app.exception_handler(Exception)

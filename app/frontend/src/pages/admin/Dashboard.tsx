@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Backpack, ClipboardList, Eye, FileText, Link2, Pencil, Plus, RefreshCw, Search, ShieldAlert, ShieldCheck, Trash2, UserRound, Users, type LucideIcon } from 'lucide-react'
+import { Backpack, ClipboardList, Eye, FileText, Link2, Pencil, Plus, RefreshCw, Search, ShieldAlert, ShieldCheck, Sparkles, Trash2, UserRound, Users, type LucideIcon } from 'lucide-react'
 import { PortalLayout, type NavItem } from '../../components/PortalLayout'
 import { ContentManager } from './ContentManager'
 import { Card } from '../../components/ui/Card'
@@ -19,7 +19,15 @@ import { Alert } from '../../components/ui/Alert'
 import { useToast } from '../../contexts/ToastContext'
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../lib/api'
 import { RISK_META } from '../../lib/risk'
-import type { ParentChildLink, PredictionRunResult, Profile, RosterRow, UserRole } from '../../lib/types'
+import { EngagementScatter } from '../../components/charts/EngagementScatter'
+import type {
+  EngagementPerformanceAnalytics,
+  ParentChildLink,
+  PredictionRunResult,
+  Profile,
+  RosterRow,
+  UserRole,
+} from '../../lib/types'
 
 const NAV: NavItem[] = [
   { key: 'users', label: 'Users', icon: Users },
@@ -27,6 +35,7 @@ const NAV: NavItem[] = [
   { key: 'materials', label: 'Materials', icon: FileText },
   { key: 'quizzes', label: 'Quizzes', icon: ClipboardList },
   { key: 'predictions', label: 'Risk Predictions', icon: ShieldAlert },
+  { key: 'insights', label: 'Insights', icon: Sparkles },
 ]
 
 const ROLES: UserRole[] = ['admin', 'parent', 'child']
@@ -34,7 +43,7 @@ const ROLE_BADGE: Record<UserRole, Tone> = { admin: 'indigo', parent: 'emerald',
 const ROLE_ICON: Record<UserRole, LucideIcon> = { admin: ShieldCheck, parent: UserRound, child: Backpack }
 const ROLE_LABEL: Record<UserRole, string> = { admin: 'Admins', parent: 'Parents', child: 'Children' }
 
-type Section = 'users' | 'links' | 'materials' | 'quizzes' | 'predictions'
+type Section = 'users' | 'links' | 'materials' | 'quizzes' | 'predictions' | 'insights'
 
 const SECTION_META: Record<Section, { title: string; subtitle: string }> = {
   users: { title: 'Users', subtitle: 'Manage platform accounts and roles' },
@@ -42,6 +51,7 @@ const SECTION_META: Record<Section, { title: string; subtitle: string }> = {
   materials: { title: 'Materials', subtitle: 'Upload and organise learning materials by subject' },
   quizzes: { title: 'Quizzes', subtitle: 'Create quizzes and review student attempts' },
   predictions: { title: 'Risk Predictions', subtitle: 'Explainable O/L performance-risk bands per child' },
+  insights: { title: 'Insights', subtitle: 'How parental engagement relates to student performance' },
 }
 
 export default function AdminDashboard() {
@@ -141,6 +151,8 @@ export default function AdminDashboard() {
     >
       {section === 'predictions' ? (
         <RiskSection />
+      ) : section === 'insights' ? (
+        <InsightsSection />
       ) : section === 'materials' || section === 'quizzes' ? (
         <ContentManager section={section} />
       ) : (
@@ -578,6 +590,68 @@ function EditUserModal({
         </div>
       </form>
     </Modal>
+  )
+}
+
+function ScatterLegend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="size-2.5 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
+  )
+}
+
+function InsightsSection() {
+  const [data, setData] = useState<EngagementPerformanceAnalytics | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    apiGet<EngagementPerformanceAnalytics>('/admin/analytics/engagement-performance')
+      .then(setData)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load analytics'))
+  }, [])
+
+  const r = data?.r ?? null
+  const strength = r == null ? '' : Math.abs(r) >= 0.7 ? 'strong' : Math.abs(r) >= 0.4 ? 'moderate' : 'weak'
+  const headline =
+    r == null
+      ? null
+      : `Across ${data!.n} students, higher parental engagement is associated with higher performance — a ${strength} positive correlation (r = ${r.toFixed(2)}).`
+
+  return (
+    <div className="space-y-6">
+      {error && <Alert>{error}</Alert>}
+      <Card
+        accent
+        eyebrow="research insight"
+        title="Parental engagement vs performance"
+        description="Each dot is a student · association, not causation (simulated cohort)"
+      >
+        {!data ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+        ) : data.points.length < 2 ? (
+          <EmptyState
+            icon={Sparkles}
+            title="Not enough data yet"
+            description="Seed the demo cohort and run predictions to populate this chart."
+          />
+        ) : (
+          <>
+            {headline && (
+              <p className="mb-4 text-sm text-slate-700 dark:text-slate-200">{headline}</p>
+            )}
+            <EngagementScatter points={data.points} />
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+              <ScatterLegend color="#22C55E" label="Low risk" />
+              <ScatterLegend color="#F59E0B" label="Medium risk" />
+              <ScatterLegend color="#EF4444" label="High risk" />
+              <span className="ml-auto">Dashed line = least-squares trend</span>
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
   )
 }
 

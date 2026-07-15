@@ -352,6 +352,19 @@ function OverviewSection({
 
   return (
     <div className="space-y-6">
+      {engagement?.engagement_index != null && (
+        <Card accent eyebrow="why your involvement matters">
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            Across our students, higher parental engagement is linked to stronger O/L performance. Your engagement index
+            is{' '}
+            <span className="font-semibold text-[#4F46E5] dark:text-[#A5B4FC]">
+              {Math.round(engagement.engagement_index * 100)}/100
+            </span>{' '}
+            — every check-in and monitored session counts.
+          </p>
+        </Card>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <StatCard

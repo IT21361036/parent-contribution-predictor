@@ -181,6 +181,21 @@ export interface MonitoringSession {
   liveness_passed: boolean | null
 }
 
+// Admin analytics: one student on the engagement->performance scatter.
+export interface EngagementPerformancePoint {
+  child_id: string
+  name: string | null
+  engagement: number
+  performance: number
+  risk_band: RiskBand | null
+}
+
+export interface EngagementPerformanceAnalytics {
+  points: EngagementPerformancePoint[]
+  r: number | null
+  n: number
+}
+
 // One past attention-verification run (GET /parent/attention-history).
 export interface AttentionHistoryItem {
   id: string

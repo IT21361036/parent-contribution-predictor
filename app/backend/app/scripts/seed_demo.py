@@ -18,6 +18,7 @@ Usage:
 
 from __future__ import annotations
 
+import random
 import sys
 from datetime import datetime, timezone
 
@@ -27,6 +28,12 @@ from app.ml.engagement import ATTENTION_PLACEHOLDER, compute_pei
 DEMO_TERM = "demo-2026-t1"
 DEMO_PERIOD = "demo"
 PREDICTION_TERM = "current"  # matches routers.predictions.TERM
+
+# Simulated cohort used to demonstrate the engagement->performance relationship
+# on the admin analytics scatter. Identified by email domain so --clear can
+# remove them cleanly (they are demo accounts, not real students).
+COHORT_DOMAIN = "ol-demo.local"
+COHORT_SIZE = 12
 
 # Three archetypes spread across the risk spectrum. Values are chosen so the
 # trained model lands each archetype in (roughly) its intended band, driven by
@@ -92,10 +99,96 @@ def seed(client) -> None:
     print("view them in the parent and admin dashboards.")
 
 
+def _cohort_sample(rng: random.Random):
+    """A latent 'family involvement' factor drives BOTH the parental signals and
+    the academic scores, with independent noise on each — so engagement and
+    performance correlate positively but not perfectly (a believable scatter)."""
+    latent = rng.random()
+    n = lambda s: rng.uniform(-s, s)  # noqa: E731
+    hours = max(0.0, round(latent * 9 + n(1.5), 1))
+    checks = max(0.0, round(latent * 22 + n(4)))
+    base = 40 + latent * 50
+    assessment = max(20.0, min(99.0, round(base + n(9))))
+    exam = max(20.0, min(99.0, round(base + n(9))))
+    attendance = max(50.0, min(100.0, round(60 + latent * 38 + n(5))))
+    return hours, checks, assessment, exam, attendance
+
+
+def seed_cohort(client, n: int = COHORT_SIZE) -> None:
+    """Create/refresh N simulated child accounts with correlated engagement +
+    academic data, so the admin analytics scatter shows a clear (noisy) trend."""
+    rng = random.Random(42)
+    now = datetime.now(timezone.utc).isoformat()
+    made = 0
+    for i in range(1, n + 1):
+        email = f"demo.student.{i:02d}@{COHORT_DOMAIN}"
+        name = f"Demo Student {i:02d}"
+        existing = client.table("profiles").select("id").eq("email", email).execute().data
+        if existing:
+            cid = existing[0]["id"]
+        else:
+            try:
+                created = client.auth.admin.create_user(
+                    {
+                        "email": email,
+                        "password": f"DemoPw!{i:04d}",
+                        "email_confirm": True,
+                        "user_metadata": {"full_name": name},
+                    }
+                )
+                cid = created.user.id
+            except Exception as exc:  # noqa: BLE001
+                print(f"  skip {email}: {str(exc)[:60]}")
+                continue
+        client.table("profiles").upsert(
+            {"id": cid, "role": "child", "full_name": name, "email": email, "grade_level": "Grade 11"}
+        ).execute()
+
+        hours, checks, assessment, exam, attendance = _cohort_sample(rng)
+        client.table("academic_records").delete().eq("child_id", cid).eq("term", DEMO_TERM).execute()
+        client.table("academic_records").insert(
+            {"child_id": cid, "term": DEMO_TERM, "assessment_score": assessment, "exam_score": exam, "attendance_pct": attendance}
+        ).execute()
+        pei = compute_pei(hours, checks, ATTENTION_PLACEHOLDER)
+        client.table("engagement_index").delete().eq("child_id", cid).eq("period", DEMO_PERIOD).execute()
+        client.table("engagement_index").insert(
+            {
+                "child_id": cid,
+                "period": DEMO_PERIOD,
+                "monitoring_hours": hours,
+                "check_frequency": checks,
+                "avg_attention_score": ATTENTION_PLACEHOLDER,
+                "engagement_index": pei,
+                "computed_at": now,
+            }
+        ).execute()
+        made += 1
+    print(f"Seeded {made} simulated cohort student(s) (@{COHORT_DOMAIN}).")
+    print("Next: POST /predictions/run (as admin) to colour them by risk band.")
+
+
+def clear_cohort(client) -> None:
+    kids = client.table("profiles").select("id").like("email", f"%@{COHORT_DOMAIN}").execute().data
+    for k in kids:
+        client.table("academic_records").delete().eq("child_id", k["id"]).execute()
+        client.table("engagement_index").delete().eq("child_id", k["id"]).execute()
+        client.table("predictions").delete().eq("child_id", k["id"]).execute()
+        try:
+            client.auth.admin.delete_user(k["id"])
+        except Exception:  # noqa: BLE001
+            pass
+    print(f"Cleared {len(kids)} simulated cohort student(s).")
+
+
 def main() -> None:
     client = get_service_client()
     if "--clear" in sys.argv:
         clear_demo(client)
+        clear_cohort(client)
+    elif "--cohort" in sys.argv:
+        idx = sys.argv.index("--cohort")
+        size = int(sys.argv[idx + 1]) if idx + 1 < len(sys.argv) and sys.argv[idx + 1].isdigit() else COHORT_SIZE
+        seed_cohort(client, size)
     else:
         seed(client)
 
