@@ -33,6 +33,7 @@ import { Alert } from '../../components/ui/Alert'
 import { TrendChart } from '../../components/charts/TrendChart'
 import { AttentionPanel } from '../../components/attention/AttentionPanel'
 import { LampGauge } from '../../components/ui/LampGauge'
+import { Pagination, usePagination } from '../../components/ui/Pagination'
 import { apiGet, apiPost } from '../../lib/api'
 import { useToast } from '../../contexts/ToastContext'
 import { averagePercent, dailyCounts, scoreTrend } from '../../lib/chartData'
@@ -522,6 +523,7 @@ function EngagementCard({
 function ActivitySection({ activity }: { activity: StudentActivity[] }) {
   const [action, setAction] = useState<ActivityAction | null>(null)
   const filtered = useMemo(() => (action ? activity.filter((a) => a.action === action) : activity), [activity, action])
+  const { page, setPage, totalPages, pageItems } = usePagination(filtered, 8)
 
   return (
     <Card title="Activity history" description={`${filtered.length} of ${activity.length} events`}>
@@ -535,8 +537,9 @@ function ActivitySection({ activity }: { activity: StudentActivity[] }) {
           description={activity.length === 0 ? undefined : 'Clear the filter above to see all events.'}
         />
       ) : (
+        <>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-          {filtered.map((a, i) => {
+          {pageItems.map((a, i) => {
             const Icon = ACTION_ICON[a.action]
             return (
               <li
@@ -559,18 +562,22 @@ function ActivitySection({ activity }: { activity: StudentActivity[] }) {
             )
           })}
         </ul>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
       )}
     </Card>
   )
 }
 
 function QuizzesSection({ attempts }: { attempts: QuizAttempt[] }) {
+  const { page, setPage, totalPages, pageItems } = usePagination(attempts, 8)
   return (
     <Card title="Quiz scores" description={`${attempts.length} attempts`}>
       {attempts.length === 0 ? (
         <EmptyState icon={ListChecks} title="No quizzes attempted yet" />
       ) : (
-        <div className="overflow-x-auto -mx-5 -mb-5">
+        <div className="-mx-5 -mb-5">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-slate-500 dark:text-slate-400 text-left">
               <tr>
@@ -581,7 +588,7 @@ function QuizzesSection({ attempts }: { attempts: QuizAttempt[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {attempts.map((a) => {
+              {pageItems.map((a) => {
                 const pct = a.max_score ? Math.round(((a.score ?? 0) / a.max_score) * 100) : null
                 return (
                   <tr key={a.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
@@ -598,6 +605,10 @@ function QuizzesSection({ attempts }: { attempts: QuizAttempt[] }) {
               })}
             </tbody>
           </table>
+          </div>
+          <div className="px-5 pb-1">
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          </div>
         </div>
       )}
     </Card>
@@ -621,6 +632,7 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
   const trend = [...rows]
     .reverse()
     .map((r) => ({ label: r.recorded_at ? new Date(r.recorded_at).toLocaleDateString() : '', value: r.pct }))
+  const { page, setPage, totalPages, pageItems } = usePagination(rows, 8)
 
   return (
     <div className="space-y-6">
@@ -655,7 +667,8 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
             description="Turn on “Verify my attention” during a monitoring session — each run is recorded here so you can track your observation over time."
           />
         ) : (
-          <div className="overflow-x-auto -mx-5 -mb-5">
+          <div className="-mx-5 -mb-5">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 text-left">
                 <tr>
@@ -666,7 +679,7 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {rows.map((r) => (
+                {pageItems.map((r) => (
                   <tr key={r.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
                     <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">
                       {r.recorded_at ? new Date(r.recorded_at).toLocaleString() : '—'}
@@ -682,6 +695,10 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="px-5 pb-1">
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            </div>
           </div>
         )}
       </Card>
@@ -690,15 +707,16 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
 }
 
 function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
-  const totalPages = sessions.reduce((s, x) => s + x.pages_viewed, 0)
+  const totalViews = sessions.reduce((s, x) => s + x.pages_viewed, 0)
   const totalChecks = sessions.reduce((s, x) => s + x.history_checks, 0)
+  const { page, setPage, totalPages, pageItems } = usePagination(sessions, 8)
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
         {[
           { icon: Clock, label: 'Sessions', value: sessions.length, accent: 'indigo' as const },
-          { icon: Eye, label: 'Pages viewed', value: totalPages, accent: 'teal' as const },
+          { icon: Eye, label: 'Pages viewed', value: totalViews, accent: 'teal' as const },
           { icon: History, label: 'History checks', value: totalChecks, accent: 'amber' as const },
         ].map((s, i) => (
           <StatCard
@@ -717,7 +735,8 @@ function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
         {sessions.length === 0 ? (
           <EmptyState icon={Clock} title="No sessions yet" description="Select a child above to start a monitoring session." />
         ) : (
-          <div className="overflow-x-auto -mx-5 -mb-5">
+          <div className="-mx-5 -mb-5">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 text-left">
                 <tr>
@@ -728,7 +747,7 @@ function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {sessions.map((s) => (
+                {pageItems.map((s) => (
                   <tr key={s.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
                     <td className="px-5 py-2 text-slate-700 dark:text-slate-300">{new Date(s.started_at).toLocaleString()}</td>
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">{formatDuration(s.started_at, s.ended_at)}</td>
@@ -738,6 +757,10 @@ function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="px-5 pb-1">
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            </div>
           </div>
         )}
       </Card>
@@ -763,6 +786,7 @@ function NotificationsSection({
   onOpen: (n: AppNotification) => void
   onMarkAll: () => void
 }) {
+  const { page, setPage, totalPages, pageItems } = usePagination(items, 8)
   return (
     <Card
       title="Notifications"
@@ -782,8 +806,9 @@ function NotificationsSection({
           description="Quiz results, due-quiz reminders, report cards and risk alerts will appear here."
         />
       ) : (
+        <>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800 -mt-1">
-          {items.map((n, i) => {
+          {pageItems.map((n, i) => {
             const Icon = NOTIFICATION_ICON[n.type]
             const isUnread = !n.read_at
             return (
@@ -813,6 +838,8 @@ function NotificationsSection({
             )
           })}
         </ul>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
       )}
     </Card>
   )
@@ -820,6 +847,7 @@ function NotificationsSection({
 
 function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childName: string | null }) {
   const toast = useToast()
+  const { page, setPage, totalPages, pageItems } = usePagination(cards, 8)
 
   async function download(rc: ReportCard) {
     try {
@@ -835,8 +863,9 @@ function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childNa
       {cards.length === 0 ? (
         <EmptyState icon={FileText} title="No report cards yet" description="Report cards uploaded by the school appear here." />
       ) : (
+        <>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800 -mt-1">
-          {cards.map((rc, i) => (
+          {pageItems.map((rc, i) => (
             <li
               key={rc.id}
               className="py-3 flex items-center gap-3 animate-row-in"
@@ -857,6 +886,8 @@ function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childNa
             </li>
           ))}
         </ul>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
       )}
     </Card>
   )

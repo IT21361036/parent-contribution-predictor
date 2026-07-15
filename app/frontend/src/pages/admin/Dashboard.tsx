@@ -20,6 +20,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../lib/api'
 import { RISK_META } from '../../lib/risk'
 import { EngagementScatter } from '../../components/charts/EngagementScatter'
+import { Pagination, usePagination } from '../../components/ui/Pagination'
 import type {
   EngagementPerformanceAnalytics,
   ParentChildLink,
@@ -99,6 +100,8 @@ export default function AdminDashboard() {
       return u.full_name.toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q)
     })
   }, [users, roleFilter, search])
+  const usersPg = usePagination(filteredUsers, 10)
+  const linksPg = usePagination(links, 10)
 
   async function handleDeleteUser() {
     if (!deletingUser) return
@@ -216,7 +219,8 @@ export default function AdminDashboard() {
               }
             />
           ) : (
-            <div className="overflow-x-auto -mx-5 -mb-5">
+            <div className="-mx-5 -mb-5">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-slate-500 dark:text-slate-400 text-left">
                   <tr>
@@ -229,7 +233,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredUsers.map((u) => (
+                  {usersPg.pageItems.map((u) => (
                     <tr key={u.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
                       <td className="px-5 py-2.5">
                         <div className="flex items-center gap-2.5">
@@ -277,6 +281,10 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
+              <div className="px-5 pb-1">
+                <Pagination page={usersPg.page} totalPages={usersPg.totalPages} onChange={usersPg.setPage} />
+              </div>
             </div>
           )}
         </Card>
@@ -306,8 +314,9 @@ export default function AdminDashboard() {
               description="Link a parent to a child account to enable monitoring."
             />
           ) : (
+            <>
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {links.map((l) => (
+              {linksPg.pageItems.map((l) => (
                 <li key={l.id} className="py-3 flex items-center gap-3 text-sm group">
                   <Avatar name={nameOf(l.parent_id)} size="sm" />
                   <span className="font-medium text-slate-800 dark:text-slate-200">{nameOf(l.parent_id)}</span>
@@ -325,6 +334,8 @@ export default function AdminDashboard() {
                 </li>
               ))}
             </ul>
+            <Pagination page={linksPg.page} totalPages={linksPg.totalPages} onChange={linksPg.setPage} />
+            </>
           )}
         </Card>
       )}
