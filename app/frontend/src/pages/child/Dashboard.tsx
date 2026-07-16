@@ -300,11 +300,22 @@ function MaterialRow({ material, onActivityLogged }: { material: LearningMateria
       )}
       {docUrl && (
         <Modal open onClose={() => setDocUrl(null)} title={material.title} size="xl">
-          <iframe
-            src={docUrl}
-            title={material.title}
-            className="w-full h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
-          />
+          {/* Only PDFs and images embed reliably in an iframe. Other types
+              (e.g. markdown, docx) render blank, so show a clear fallback. */}
+          {/\.(pdf|png|jpe?g|gif|webp|svg)(\?|$)/i.test(docUrl) ? (
+            <iframe
+              src={docUrl}
+              title={material.title}
+              className="w-full h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <Icon className="size-10 text-slate-300 dark:text-slate-600" />
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                This file can’t be previewed here. Open it in a new tab to view or download.
+              </p>
+            </div>
+          )}
           <div className="mt-3 flex justify-end">
             <a
               href={docUrl}
