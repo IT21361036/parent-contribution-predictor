@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [deletingUser, setDeletingUser] = useState<Profile | null>(null)
   const [deletingLink, setDeletingLink] = useState<ParentChildLink | null>(null)
   const [actionInProgress, setActionInProgress] = useState(false)
+  const navigate = useNavigate()
   const [roleFilter, setRoleFilter] = useState<UserRole | null>(null)
   const [search, setSearch] = useState('')
   const toast = useToast()
@@ -254,6 +255,15 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-5 py-2.5">
                         <div className="flex items-center justify-end gap-1">
+                          {u.role === 'child' && (
+                            <button
+                              onClick={() => navigate(`/admin/students/${u.id}`)}
+                              title="Open details & report cards"
+                              className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#4338CA] dark:hover:text-[#C7D2FE] hover:bg-[#EEF2FF] dark:hover:bg-[#1E1B4B] transition-colors"
+                            >
+                              <FileText className="size-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setViewingUser(u)}
                             title="View"
