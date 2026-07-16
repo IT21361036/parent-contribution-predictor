@@ -62,10 +62,20 @@ def _report_card_or_404(client, report_card_id: str) -> dict:
 
 
 def _signed_url(client, storage_path: str) -> str:
-    signed = client.storage.from_(STORAGE_BUCKET).create_signed_url(storage_path, 3600)
+    # A missing object makes create_signed_url raise — turn it into a clean 404
+    # (which keeps its CORS header) rather than an uncaught 500 that shows in the
+    # browser as a phantom CORS failure.
+    try:
+        signed = client.storage.from_(STORAGE_BUCKET).create_signed_url(storage_path, 3600)
+    except Exception as exc:  # noqa: BLE001 — surface a usable message, not a 500
+        raise HTTPException(
+            status_code=404, detail="File is missing from storage — please re-upload this report card."
+        ) from exc
     url = signed.get("signedURL") or signed.get("signedUrl")
     if not url:
-        raise HTTPException(status_code=500, detail="Failed to generate download link")
+        raise HTTPException(
+            status_code=404, detail="File is missing from storage — please re-upload this report card."
+        )
     return url
 
 
