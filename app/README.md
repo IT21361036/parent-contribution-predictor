@@ -164,3 +164,58 @@ directly via `/docs` if you ever need to script bulk account creation.)
   `supabase/migrations/2026-07-10-notifications-report-cards.sql` to apply to an
   existing DB. All creation/role logic is API-only with the service-role key
   (RLS-vs-API golden rule); notifications have no public create endpoint.
+- **Short-answer quiz grading:** done. MCQs still auto-grade on submit; a quiz
+  with any short-answer question is stored `graded=false` and shows **Needs
+  grading** in the admin Quiz Results view. An admin awards marks per question
+  (bounded by that question's maximum, with the student answer and model answer
+  shown) via `POST /quizzes/attempts/{id}/grade`, which recomputes the total
+  score and — only once the attempt becomes fully graded — sends the parent the
+  `quiz_result` notification (so no misleading partial score is ever announced).
+  Child/parent views show **Awaiting grading** and exclude ungraded attempts
+  from score trends/averages until then. Per-question marks live in the new
+  `quiz_attempts.question_scores` + `graded` columns — see
+  `supabase/migrations/2026-07-17-short-answer-grading.sql` to apply to an
+  existing DB.
+
+## Running the tests
+
+Backend unit/API tests use `pytest` with an in-memory fake Supabase client
+(no live DB or network — auth is overridden and `get_service_client` is patched
+per router). From `app/backend`:
+
+```bash
+pip install -r requirements.txt   # pulls in pytest + httpx
+pytest                            # runs tests/ (grading + engagement formula)
+```
+
+Coverage focuses on the logic most worth pinning: quiz grading (MCQ
+auto-grade, short-answer pending → admin grade → recompute + notify, mark
+bounds, role/ownership guards) and the Parental Engagement Index formula and
+its normalisation caps. Frontend correctness is checked with `tsc --noEmit`
+(`npm run build` in `app/frontend`).
+
+## Limitations & scope notes
+
+Honest boundaries of this FYP build, so results aren't over-read:
+
+- **The performance predictor is trained on simulated data.** The model may
+  only use features our own schema holds, and no public dataset carries that
+  exact combination of behavioral + parental-engagement features per O/L
+  student. The training set is therefore **generated on purpose** in that
+  feature schema (`app/ml/generate_simulated.py`), with the feature–outcome
+  relationships grounded in public education datasets (UCI Student Performance,
+  xAPI-Edu-Data) and every row tagged by `data_source`. Consequences: the
+  reported accuracy (≈0.75) and the SHAP-style factor explanations reflect the
+  **simulated relationships**, not validated real-world O/L outcomes; they are
+  framed as **association, not causation**. Deploying for real decisions would
+  require retraining on a consented cohort of real student data.
+- **Camera attention accuracy needs a manual pass.** All gaze/liveness/
+  accumulation logic is client-side and unit-verified, but the eyes-on-screen
+  gaze thresholds were tuned against controlled input, not a range of real
+  webcams, lighting, and faces. Treat the attention % as an **indicative
+  signal**, not a precise measurement, until a real-device calibration pass.
+  When the camera is denied or absent, engagement gracefully falls back to the
+  neutral 0.5 attention placeholder.
+- **Parental Engagement Index is a transparent weighted formula, not ML** — by
+  design (explainability), so it reflects the chosen weights (0.4/0.3/0.3), not
+  a learned relationship.
