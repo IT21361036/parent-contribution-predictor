@@ -94,6 +94,8 @@ export interface QuizAttempt {
   score: number | null
   max_score: number | null
   answers: Record<string, string> | null
+  question_scores: Record<string, number> | null  // per-question awarded marks
+  graded: boolean  // false while short-answer questions await admin marks
   submitted_at: string
   quiz_title?: string | null
 }

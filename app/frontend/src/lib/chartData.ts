@@ -29,7 +29,7 @@ export function dailyCounts(timestamps: string[], days = 14): TrendPoint[] {
 // Chronological score-% series for graded quiz attempts.
 export function scoreTrend(attempts: QuizAttempt[]): TrendPoint[] {
   return attempts
-    .filter((a) => a.max_score)
+    .filter((a) => a.max_score && a.graded)
     .slice()
     .sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
     .map((a) => ({
@@ -39,7 +39,7 @@ export function scoreTrend(attempts: QuizAttempt[]): TrendPoint[] {
 }
 
 export function averagePercent(attempts: QuizAttempt[]): number | null {
-  const graded = attempts.filter((a) => a.max_score)
+  const graded = attempts.filter((a) => a.max_score && a.graded)
   if (!graded.length) return null
   return Math.round(
     (graded.reduce((sum, a) => sum + (a.score ?? 0) / (a.max_score || 1), 0) / graded.length) * 100

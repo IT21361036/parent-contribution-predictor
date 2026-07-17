@@ -355,21 +355,32 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
 
 function QuizResultsModal({ quiz, onClose }: { quiz: Quiz | null; onClose: () => void }) {
   const [attempts, setAttempts] = useState<QuizAttemptWithChild[] | null>(null)
+  const [questions, setQuestions] = useState<QuizWithQuestions['questions']>([])
   const [error, setError] = useState<string | null>(null)
+  const [grading, setGrading] = useState<QuizAttemptWithChild | null>(null)
+
+  const load = (quizId: string) =>
+    apiGet<QuizAttemptWithChild[]>(`/quizzes/${quizId}/attempts`)
+      .then(setAttempts)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load results'))
 
   useEffect(() => {
     if (!quiz) {
       setAttempts(null)
+      setQuestions([])
       setError(null)
       return
     }
-    apiGet<QuizAttemptWithChild[]>(`/quizzes/${quiz.id}/attempts`)
-      .then(setAttempts)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load results'))
+    load(quiz.id)
+    // Admin quiz fetch includes correct_answer — needed to grade short answers.
+    apiGet<QuizWithQuestions>(`/quizzes/${quiz.id}`)
+      .then((q) => setQuestions(q.questions))
+      .catch(() => setQuestions([]))
   }, [quiz])
 
+  const hasShortAnswer = questions.some((q) => q.type === 'short_answer')
   const percents = (attempts ?? [])
-    .filter((a) => a.max_score)
+    .filter((a) => a.graded && a.max_score)
     .map((a) => Math.round(((a.score ?? 0) / (a.max_score || 1)) * 100))
   const avg = percents.length ? Math.round(percents.reduce((s, p) => s + p, 0) / percents.length) : null
   const best = percents.length ? Math.max(...percents) : null
@@ -389,6 +400,13 @@ function QuizResultsModal({ quiz, onClose }: { quiz: Quiz | null; onClose: () =>
             <StatCard icon={BarChart3} label="Average" value={avg !== null ? `${avg}%` : '—'} accent="teal" />
             <StatCard icon={Award} label="Best" value={best !== null ? `${best}%` : '—'} accent="violet" />
           </div>
+          {hasShortAnswer && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              This quiz has short-answer questions. Attempts marked{' '}
+              <Badge tone="amber">Needs grading</Badge> aren't scored until you award marks — the
+              parent is notified once grading is complete.
+            </p>
+          )}
           {attempts.length === 0 ? (
             <EmptyState icon={Users} title="No attempts yet" />
           ) : (
@@ -399,7 +417,8 @@ function QuizResultsModal({ quiz, onClose }: { quiz: Quiz | null; onClose: () =>
                     <th className="py-2 pr-4 font-medium">Student</th>
                     <th className="py-2 pr-4 font-medium">Score</th>
                     <th className="py-2 pr-4 font-medium">Percent</th>
-                    <th className="py-2 font-medium">Submitted</th>
+                    <th className="py-2 pr-4 font-medium">Submitted</th>
+                    <th className="py-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -409,16 +428,25 @@ function QuizResultsModal({ quiz, onClose }: { quiz: Quiz | null; onClose: () =>
                       <tr key={a.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
                         <td className="py-2.5 pr-4 font-medium text-slate-800 dark:text-slate-200">{a.child_name ?? 'Unknown'}</td>
                         <td className="py-2.5 pr-4 text-slate-600 dark:text-slate-300">
-                          {a.score} / {a.max_score}
+                          {a.graded ? `${a.score} / ${a.max_score}` : '—'}
                         </td>
                         <td className="py-2.5 pr-4">
-                          {pct !== null ? (
+                          {!a.graded ? (
+                            <Badge tone="amber">Needs grading</Badge>
+                          ) : pct !== null ? (
                             <Badge tone={pct >= 75 ? 'emerald' : pct >= 40 ? 'amber' : 'red'}>{pct}%</Badge>
                           ) : (
                             '—'
                           )}
                         </td>
-                        <td className="py-2.5 text-slate-500 dark:text-slate-400">{new Date(a.submitted_at).toLocaleString()}</td>
+                        <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400">{new Date(a.submitted_at).toLocaleString()}</td>
+                        <td className="py-2.5 text-right">
+                          {hasShortAnswer && (
+                            <Button size="sm" variant={a.graded ? 'ghost' : 'primary'} onClick={() => setGrading(a)}>
+                              {a.graded ? 'Review' : 'Grade'}
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
@@ -427,6 +455,117 @@ function QuizResultsModal({ quiz, onClose }: { quiz: Quiz | null; onClose: () =>
             </div>
           )}
         </div>
+      )}
+      <GradeAttemptModal
+        attempt={grading}
+        questions={questions}
+        onClose={() => setGrading(null)}
+        onGraded={() => {
+          setGrading(null)
+          if (quiz) load(quiz.id)
+        }}
+      />
+    </Modal>
+  )
+}
+
+function GradeAttemptModal({
+  attempt,
+  questions,
+  onClose,
+  onGraded,
+}: {
+  attempt: QuizAttemptWithChild | null
+  questions: QuizWithQuestions['questions']
+  onClose: () => void
+  onGraded: () => void
+}) {
+  const shortAnswers = useMemo(() => questions.filter((q) => q.type === 'short_answer'), [questions])
+  const [marks, setMarks] = useState<Record<string, string>>({})
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => {
+    if (!attempt) return
+    // Pre-fill with any marks already awarded (Review / re-grade case).
+    const existing = attempt.question_scores ?? {}
+    setMarks(Object.fromEntries(shortAnswers.map((q) => [q.id, existing[q.id]?.toString() ?? ''])))
+    setError(null)
+  }, [attempt, shortAnswers])
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!attempt) return
+    const grades = shortAnswers.map((q) => ({ question_id: q.id, marks: Number(marks[q.id]) }))
+    const invalid = grades.find(
+      (g, i) => marks[g.question_id] === '' || Number.isNaN(g.marks) || g.marks < 0 || g.marks > shortAnswers[i].marks,
+    )
+    if (invalid) {
+      setError('Enter valid marks (within each question’s maximum) for every short-answer question.')
+      return
+    }
+    setError(null)
+    setSaving(true)
+    try {
+      await apiPost(`/quizzes/attempts/${attempt.id}/grade`, { grades })
+      toast.success('Grading saved — the parent has been notified.')
+      onGraded()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save grading')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={!!attempt}
+      onClose={onClose}
+      title={attempt ? `Grade — ${attempt.child_name ?? 'student'}` : ''}
+      size="lg"
+    >
+      {attempt && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {shortAnswers.map((q) => (
+            <div key={q.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+              <p className="font-medium text-slate-800 dark:text-slate-200">{q.question_text}</p>
+              <div className="text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Student answer: </span>
+                <span className="text-slate-800 dark:text-slate-200">
+                  {attempt.answers?.[q.id] || <em className="text-slate-400">No answer</em>}
+                </span>
+              </div>
+              {q.correct_answer && (
+                <div className="text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Model answer: </span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{q.correct_answer}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={q.marks}
+                  step="0.5"
+                  className="w-24"
+                  value={marks[q.id] ?? ''}
+                  onChange={(e) => setMarks((m) => ({ ...m, [q.id]: e.target.value }))}
+                />
+                <span className="text-sm text-slate-500 dark:text-slate-400">/ {q.marks} marks</span>
+              </div>
+            </div>
+          ))}
+          {error && <Alert>{error}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save grading'}
+            </Button>
+          </div>
+        </form>
       )}
     </Modal>
   )

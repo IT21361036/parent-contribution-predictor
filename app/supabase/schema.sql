@@ -85,6 +85,8 @@ create table quiz_attempts (
   score numeric,
   max_score numeric,
   answers jsonb,
+  question_scores jsonb,       -- per-question awarded marks {question_id: marks}
+  graded boolean not null default true,  -- false while short-answers await admin marks
   submitted_at timestamptz default now()
 );
 

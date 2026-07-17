@@ -123,7 +123,7 @@ export default function ChildDashboard() {
   const bestScores = useMemo(() => {
     const best = new Map<string, number>()
     for (const a of attempts) {
-      if (!a.max_score) continue
+      if (!a.max_score || !a.graded) continue
       const pct = Math.round(((a.score ?? 0) / a.max_score) * 100)
       const prev = best.get(a.quiz_id)
       if (prev === undefined || pct > prev) best.set(a.quiz_id, pct)
@@ -571,10 +571,16 @@ function ProgressSection({ activity, attempts }: { activity: StudentActivity[]; 
                       <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(a.submitted_at).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {a.score} / {a.max_score}
-                      </span>
-                      {pct !== null && <Badge tone={pct >= 75 ? 'emerald' : pct >= 40 ? 'amber' : 'red'}>{pct}%</Badge>}
+                      {a.graded ? (
+                        <>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {a.score} / {a.max_score}
+                          </span>
+                          {pct !== null && <Badge tone={pct >= 75 ? 'emerald' : pct >= 40 ? 'amber' : 'red'}>{pct}%</Badge>}
+                        </>
+                      ) : (
+                        <Badge tone="amber">Awaiting grading</Badge>
+                      )}
                     </div>
                   </li>
                 )

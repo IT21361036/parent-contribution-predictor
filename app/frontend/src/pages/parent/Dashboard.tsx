@@ -622,10 +622,16 @@ function QuizzesSection({ attempts }: { attempts: QuizAttempt[] }) {
                   <tr key={a.id} className="hover:bg-[#f8fafc] dark:hover:bg-slate-800/60 transition-colors">
                     <td className="px-5 py-2.5 font-medium text-slate-800 dark:text-slate-200">{a.quiz_title ?? 'Quiz'}</td>
                     <td className="px-5 py-2.5 text-slate-600 dark:text-slate-300">
-                      {a.score} / {a.max_score}
+                      {a.graded ? `${a.score} / ${a.max_score}` : '—'}
                     </td>
                     <td className="px-5 py-2.5">
-                      {pct !== null ? <Badge tone={pct >= 75 ? 'emerald' : pct >= 40 ? 'amber' : 'red'}>{pct}%</Badge> : '—'}
+                      {!a.graded ? (
+                        <Badge tone="amber">Awaiting grading</Badge>
+                      ) : pct !== null ? (
+                        <Badge tone={pct >= 75 ? 'emerald' : pct >= 40 ? 'amber' : 'red'}>{pct}%</Badge>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{new Date(a.submitted_at).toLocaleString()}</td>
                   </tr>

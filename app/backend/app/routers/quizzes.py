@@ -37,6 +37,15 @@ class SubmitAttemptRequest(BaseModel):
     answers: list[AttemptAnswer]
 
 
+class QuestionGrade(BaseModel):
+    question_id: str
+    marks: float
+
+
+class GradeAttemptRequest(BaseModel):
+    grades: list[QuestionGrade]
+
+
 @router.get("")
 def list_quizzes(subject_id: str | None = None, user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
@@ -126,11 +135,19 @@ def submit_attempt(quiz_id: str, body: SubmitAttemptRequest, user: CurrentUser =
 
     submitted = {a.question_id: a.answer for a in body.answers}
     max_score = sum(q["marks"] for q in questions)
-    score = sum(
-        q["marks"]
-        for q in questions
-        if q["type"] == "mcq" and submitted.get(q["id"]) == q["correct_answer"]
-    )
+
+    # MCQs auto-grade now. Short-answer questions carry no key here — they wait
+    # for an admin to award marks (see grade_attempt), so they stay absent from
+    # question_scores until then. graded is False while any such question exists.
+    question_scores: dict[str, float] = {}
+    needs_grading = False
+    for q in questions:
+        if q["type"] == "mcq":
+            question_scores[q["id"]] = q["marks"] if submitted.get(q["id"]) == q["correct_answer"] else 0
+        else:
+            needs_grading = True
+
+    score = sum(question_scores.values())
 
     attempt = (
         client.table("quiz_attempts")
@@ -141,6 +158,8 @@ def submit_attempt(quiz_id: str, body: SubmitAttemptRequest, user: CurrentUser =
                 "score": score,
                 "max_score": max_score,
                 "answers": submitted,
+                "question_scores": question_scores,
+                "graded": not needs_grading,
             }
         )
         .execute()
@@ -151,20 +170,95 @@ def submit_attempt(quiz_id: str, body: SubmitAttemptRequest, user: CurrentUser =
         {"child_id": user.id, "action": "quiz_submit"}
     ).execute()
 
-    # Results are immediate (auto-graded on submit — no separate release step),
-    # so this is where the score becomes visible: notify the linked parent(s).
-    quiz = client.table("quizzes").select("title").eq("id", quiz_id).maybe_single().execute().data
-    notify_safe(
-        notify_quiz_result,
-        client,
-        user.id,
-        quiz_id=quiz_id,
-        quiz_title=(quiz or {}).get("title", "a quiz"),
-        score=score,
-        max_score=max_score,
-    )
+    # Only a fully auto-graded (MCQ-only) attempt has a final score to announce.
+    # If it needs manual grading, the parent is notified later, once an admin
+    # awards the short-answer marks (see grade_attempt), to avoid a misleading
+    # partial score.
+    if not needs_grading:
+        quiz = client.table("quizzes").select("title").eq("id", quiz_id).maybe_single().execute().data
+        notify_safe(
+            notify_quiz_result,
+            client,
+            user.id,
+            quiz_id=quiz_id,
+            quiz_title=(quiz or {}).get("title", "a quiz"),
+            score=score,
+            max_score=max_score,
+        )
 
     return attempt
+
+
+@router.post("/attempts/{attempt_id}/grade")
+def grade_attempt(
+    attempt_id: str, body: GradeAttemptRequest, _: CurrentUser = Depends(require_content_author)
+):
+    """Admin awards marks for the short-answer questions of one attempt.
+
+    Recomputes the total score (MCQ auto marks + these manual marks), marks the
+    attempt graded, and — the first time it becomes fully graded — notifies the
+    linked parent(s) with the final score.
+    """
+    client = get_service_client()
+    attempt = (
+        client.table("quiz_attempts").select("*").eq("id", attempt_id).maybe_single().execute().data
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+
+    questions = client.table("quiz_questions").select("*").eq("quiz_id", attempt["quiz_id"]).execute().data
+    by_id = {q["id"]: q for q in questions}
+    short_answer_ids = {q["id"] for q in questions if q["type"] == "short_answer"}
+
+    question_scores = dict(attempt.get("question_scores") or {})
+    for grade in body.grades:
+        question = by_id.get(grade.question_id)
+        if question is None or grade.question_id not in short_answer_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="Only short-answer questions of this attempt can be graded",
+            )
+        if grade.marks < 0 or grade.marks > question["marks"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Marks must be between 0 and {question['marks']} for this question",
+            )
+        question_scores[grade.question_id] = grade.marks
+
+    was_graded = attempt.get("graded", False)
+    fully_graded = short_answer_ids.issubset(question_scores.keys())
+    score = sum(question_scores.values())
+
+    updated = (
+        client.table("quiz_attempts")
+        .update({"score": score, "question_scores": question_scores, "graded": fully_graded})
+        .eq("id", attempt_id)
+        .execute()
+        .data[0]
+    )
+
+    # Announce the result to parents only when this grading pass completes the
+    # attempt (and it wasn't already complete) — mirrors the auto-grade path.
+    if fully_graded and not was_graded:
+        quiz = (
+            client.table("quizzes")
+            .select("title")
+            .eq("id", attempt["quiz_id"])
+            .maybe_single()
+            .execute()
+            .data
+        )
+        notify_safe(
+            notify_quiz_result,
+            client,
+            attempt["child_id"],
+            quiz_id=attempt["quiz_id"],
+            quiz_title=(quiz or {}).get("title", "a quiz"),
+            score=score,
+            max_score=attempt["max_score"],
+        )
+
+    return updated
 
 
 @router.post("", status_code=201)
