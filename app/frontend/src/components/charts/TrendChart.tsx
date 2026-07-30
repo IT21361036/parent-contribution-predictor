@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import type { TooltipValueType } from 'recharts'
 import { CHART } from './chartTheme'
 
 export interface TrendPoint {
@@ -45,7 +46,7 @@ export function TrendChart({
         contentStyle={CHART.tooltip}
         labelStyle={CHART.tooltipLabel}
         itemStyle={CHART.tooltipItem}
-        formatter={(v: number | string) => [valueFormatter(Number(v)), null]}
+        formatter={(v: TooltipValueType | undefined) => [valueFormatter(Number(v)), null]}
         cursor={{ stroke: CHART.cursor, strokeWidth: 1 }}
       />
     </>

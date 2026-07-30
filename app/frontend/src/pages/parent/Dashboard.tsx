@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   ListChecks,
+  LogOut,
   MousePointerClick,
   PlayCircle,
   ScanFace,
@@ -31,7 +32,9 @@ import { FilterChips } from '../../components/ui/FilterChips'
 import { Field, Select } from '../../components/ui/Field'
 import { Alert } from '../../components/ui/Alert'
 import { TrendChart } from '../../components/charts/TrendChart'
-import { AttentionPanel } from '../../components/attention/AttentionPanel'
+import { SessionCamera } from '../../components/attention/SessionCamera'
+import { FocusGuardOverlay } from '../../components/attention/FocusGuardOverlay'
+import { useFocusGuard } from '../../lib/useFocusGuard'
 import { LampGauge } from '../../components/ui/LampGauge'
 import { Pagination, usePagination } from '../../components/ui/Pagination'
 import { apiGet, apiPost } from '../../lib/api'
@@ -201,6 +204,27 @@ export default function ParentDashboard() {
       .catch(() => setEngagementHistory([]))
   }, [childId])
 
+  // Focus mode: detect when the parent leaves the portal (tab switch / another
+  // window) during their visit. Active the whole time they're on the portal. On
+  // return, log the interruption against the active session (if any) and refresh
+  // the sessions view so the count updates.
+  const focus = useFocusGuard(true, (awaySeconds) => {
+    if (activeSessionId) {
+      apiPost(`/parent/sessions/${activeSessionId}/focus-loss`, { away_seconds: awaySeconds })
+        .then(refreshSessions)
+        .catch(() => {})
+    }
+  })
+
+  // While the Attention History tab is open, refresh it periodically — the camera
+  // saves the running session every 15s, so this lets new/updated runs appear without
+  // navigating away and back.
+  useEffect(() => {
+    if (section !== 'attention') return
+    const id = window.setInterval(refreshAttentionHistory, 15000)
+    return () => window.clearInterval(id)
+  }, [section])
+
   function ping(kind: 'page_view' | 'history_check') {
     if (!activeSessionId) return
     apiPost(`/parent/sessions/${activeSessionId}/ping`, { kind }).catch(() => {})
@@ -262,6 +286,14 @@ export default function ParentDashboard() {
       activeKey={section}
       onNavigate={(k) => selectSection(k as Section)}
     >
+      {focus.away && (
+        <FocusGuardOverlay
+          awaySeconds={focus.awaySeconds}
+          childName={selectedChild?.full_name}
+          onResume={focus.acknowledge}
+        />
+      )}
+
       {error && <Alert className="mb-4">{error}</Alert>}
 
       <Card className="mb-6">
@@ -280,14 +312,12 @@ export default function ParentDashboard() {
         )}
       </Card>
 
-      {/* Attention verification lives at the portal level, not inside a section, so
-          the camera keeps running while the parent moves between sidebar sections
-          during a monitoring session. It only resets when the child (session) changes. */}
-      {selectedChild && (
-        <div className="mb-6">
-          <AttentionPanel sessionId={activeSessionId} childName={selectedChild.full_name} />
-        </div>
-      )}
+      {/* The attention camera runs for the whole login: this stays mounted across every
+          section for the entire parent portal (which unmounts on logout). It only records
+          attention against a session while a child is selected. */}
+      <div className="mb-6">
+        <SessionCamera activeSessionId={activeSessionId} childName={selectedChild?.full_name ?? null} />
+      </div>
 
       {section === 'notifications' ? (
         <NotificationsSection
@@ -317,7 +347,11 @@ export default function ParentDashboard() {
           {section === 'activity' && <ActivitySection activity={activity} />}
           {section === 'quizzes' && <QuizzesSection attempts={attempts} />}
           {section === 'reportcards' && (
-            <ReportCardsSection cards={reportCards} childName={selectedChild.full_name} />
+            <ReportCardsSection
+              cards={reportCards}
+              childName={selectedChild.full_name}
+              onBeforeOpen={focus.suppress}
+            />
           )}
         </>
       )}
@@ -698,7 +732,7 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
           <EmptyState
             icon={ScanFace}
             title="No attention runs logged yet"
-            description="Turn on “Verify my attention” during a monitoring session — each run is recorded here so you can track your observation over time."
+            description="With your camera on and a child selected, your attention is recorded automatically — runs appear here so you can track your observation over time."
           />
         ) : (
           <div className="-mx-5 -mb-5">
@@ -743,15 +777,17 @@ function AttentionHistorySection({ items }: { items: AttentionHistoryItem[] }) {
 function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
   const totalViews = sessions.reduce((s, x) => s + x.pages_viewed, 0)
   const totalChecks = sessions.reduce((s, x) => s + x.history_checks, 0)
+  const totalLeaves = sessions.reduce((s, x) => s + (x.focus_losses ?? 0), 0)
   const { page, setPage, totalPages, pageItems } = usePagination(sessions, 8)
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: Clock, label: 'Sessions', value: sessions.length, accent: 'indigo' as const },
           { icon: Eye, label: 'Pages viewed', value: totalViews, accent: 'teal' as const },
           { icon: History, label: 'History checks', value: totalChecks, accent: 'amber' as const },
+          { icon: LogOut, label: 'Times left portal', value: totalLeaves, accent: 'violet' as const },
         ].map((s, i) => (
           <StatCard
             key={s.label}
@@ -778,6 +814,7 @@ function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
                   <th className="px-5 py-2 font-medium">Duration</th>
                   <th className="px-5 py-2 font-medium">Pages viewed</th>
                   <th className="px-5 py-2 font-medium">History checks</th>
+                  <th className="px-5 py-2 font-medium">Left portal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -787,6 +824,15 @@ function SessionsSection({ sessions }: { sessions: MonitoringSession[] }) {
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">{formatDuration(s.started_at, s.ended_at)}</td>
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">{s.pages_viewed}</td>
                     <td className="px-5 py-2 text-slate-500 dark:text-slate-400">{s.history_checks}</td>
+                    <td className="px-5 py-2 text-slate-500 dark:text-slate-400">
+                      {s.focus_losses ? (
+                        <Badge tone={s.focus_losses > 2 ? 'red' : 'amber'}>
+                          {s.focus_losses}× · {formatSeconds(s.away_seconds ?? 0)}
+                        </Badge>
+                      ) : (
+                        <span className="text-emerald-500">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -879,13 +925,24 @@ function NotificationsSection({
   )
 }
 
-function ReportCardsSection({ cards, childName }: { cards: ReportCard[]; childName: string | null }) {
+function ReportCardsSection({
+  cards,
+  childName,
+  onBeforeOpen,
+}: {
+  cards: ReportCard[]
+  childName: string | null
+  onBeforeOpen?: () => void
+}) {
   const toast = useToast()
   const { page, setPage, totalPages, pageItems } = usePagination(cards, 8)
 
   async function download(rc: ReportCard) {
     try {
       const { url } = await apiGet<{ url: string }>(`/parent/report-cards/${rc.id}/download`)
+      // Opening a report card in a new tab blurs the portal — tell focus mode this
+      // is intentional so it doesn't flag it as leaving the session.
+      onBeforeOpen?.()
       window.open(url, '_blank', 'noopener')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not open the report card')

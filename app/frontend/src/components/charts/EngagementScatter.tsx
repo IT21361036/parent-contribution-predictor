@@ -38,7 +38,8 @@ export function EngagementScatter({ points, height = 340 }: { points: Engagement
   const xs = points.map((p) => p.engagement)
   const ys = points.map((p) => p.performance)
   const n = xs.length
-  let trend: { x: number; y: number }[] | null = null
+  // Two-point tuple — ReferenceLine's `segment` requires exactly two ends.
+  let trend: readonly [{ x: number; y: number }, { x: number; y: number }] | null = null
   if (n >= 2) {
     const mx = xs.reduce((a, b) => a + b, 0) / n
     const my = ys.reduce((a, b) => a + b, 0) / n

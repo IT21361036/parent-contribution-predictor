@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O/L LMS with Parental Monitoring — Technical Documentation</title>
+<style>
+  :root{
+    --indigo:#4F46E5; --violet:#9333EA; --clay:#C9553B; --ink:#1E1B3A;
+    --canvas:#F4F5FB; --card:#ffffff; --line:#E5E7F0; --muted:#64748b;
+    --text:#1f2333; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--canvas);color:var(--text);font-family:var(--sans);
+       line-height:1.62;font-size:16px;}
+  .wrap{display:grid;grid-template-columns:280px 1fr;max-width:1400px;margin:0 auto;}
+
+  /* Sidebar TOC */
+  nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+          background:var(--ink);color:#cdd2ea;padding:28px 20px;}
+  nav.toc .brand{font-weight:800;font-size:15px;color:#fff;letter-spacing:-.01em;line-height:1.35;}
+  nav.toc .brand small{display:block;font-weight:500;color:#9aa0c7;font-size:12px;margin-top:6px;
+          text-transform:uppercase;letter-spacing:.14em;font-family:var(--mono);}
+  nav.toc ol{list-style:none;counter-reset:s;padding:0;margin:22px 0 0;}
+  nav.toc li{counter-increment:s;margin:2px 0;}
+  nav.toc a{display:block;color:#b9bfe0;text-decoration:none;font-size:13.5px;padding:6px 10px;
+            border-radius:8px;transition:background .15s,color .15s;}
+  nav.toc a::before{content:counter(s) ".";color:#7a80ad;margin-right:8px;font-family:var(--mono);font-size:12px;}
+  nav.toc a:hover{background:rgba(255,255,255,.08);color:#fff;}
+
+  main{padding:56px 60px 120px;max-width:980px;}
+  .hero{border-left:5px solid var(--indigo);padding:6px 0 6px 22px;margin-bottom:10px;}
+  h1{font-size:33px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em;color:var(--ink);}
+  .sub{color:var(--muted);font-size:15px;margin:0;}
+  .meta-pills{margin:18px 0 34px;display:flex;gap:8px;flex-wrap:wrap;}
+  .meta-pills span{background:#eceafc;color:var(--indigo);font-family:var(--mono);font-size:11.5px;
+        padding:5px 11px;border-radius:999px;letter-spacing:.04em;}
+
+  h2{font-size:24px;margin:52px 0 14px;padding-top:14px;letter-spacing:-.01em;color:var(--ink);
+     border-top:1px solid var(--line);padding-top:34px;}
+  h2 .n{color:var(--violet);font-family:var(--mono);font-size:17px;margin-right:10px;}
+  h3{font-size:18px;margin:30px 0 8px;color:#2a2740;}
+  p{margin:12px 0;}
+  a{color:var(--indigo);}
+  strong{color:#15131f;}
+  ul,ol{padding-left:22px;}
+  li{margin:5px 0;}
+
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14px;
+        background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:#f0f1f8;color:#3a3752;font-weight:700;font-size:12.5px;text-transform:uppercase;
+     letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#faf9ff;}
+  code{font-family:var(--mono);background:#eef0f7;color:#3f3a66;padding:1.5px 6px;border-radius:5px;font-size:13px;}
+  pre{background:var(--ink);color:#e7e9f8;padding:18px 20px;border-radius:12px;overflow-x:auto;
+      font-family:var(--mono);font-size:13px;line-height:1.55;margin:18px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+
+  .callout{border-radius:12px;padding:16px 20px;margin:20px 0;border:1px solid;font-size:14.5px;}
+  .callout p:first-child{margin-top:0;} .callout p:last-child{margin-bottom:0;}
+  .note{background:#eef2ff;border-color:#c7d0f7;}
+  .novel{background:#f6ecff;border-color:#e2c7f7;}
+  .warn{background:#fdf0ec;border-color:#f0cabb;}
+  .callout .tag{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
+       letter-spacing:.1em;display:block;margin-bottom:6px;}
+  .note .tag{color:var(--indigo);} .novel .tag{color:var(--violet);} .warn .tag{color:var(--clay);}
+
+  .qa{margin:16px 0;padding:14px 18px;border-left:3px solid var(--violet);background:#faf8ff;border-radius:0 10px 10px 0;}
+  .qa .q{font-weight:700;color:var(--ink);margin:0 0 6px;}
+  .qa .a{margin:0;color:#33304a;}
+
+  footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:60px;padding-top:20px;}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;}
+    nav.toc{position:static;height:auto;}
+    main{padding:32px 22px 80px;}
+  }
+  @media print{
+    nav.toc{display:none;}
+    .wrap{display:block;} main{max-width:none;padding:0;}
+    body{background:#fff;font-size:11.5pt;}
+    h2{break-after:avoid;} table,pre,.callout,.qa{break-inside:avoid;}
+    a{color:inherit;text-decoration:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="toc">
+  <div class="brand">O/L LMS + Parental Monitoring<small>Technical Documentation</small></div>
+  <ol>
+    <li><a href="#s1">Executive summary</a></li>
+    <li><a href="#s2">Research positioning</a></li>
+    <li><a href="#s3">System architecture</a></li>
+    <li><a href="#s4">Technology stack</a></li>
+    <li><a href="#s5">Database design</a></li>
+    <li><a href="#s6">Backend &amp; API</a></li>
+    <li><a href="#s7">Machine-learning system</a></li>
+    <li><a href="#s8">Camera attention (novelty)</a></li>
+    <li><a href="#s9">Frontend by role</a></li>
+    <li><a href="#s10">Development phases</a></li>
+    <li><a href="#s11">Engineering decisions</a></li>
+    <li><a href="#s12">Limitations &amp; scope</a></li>
+    <li><a href="#s13">Viva Q&amp;A</a></li>
+  </ol>
+</nav>
+
+<main>
+  <div class="hero">
+    <h1>O/L LMS with Parental Monitoring</h1>
+    <p class="sub">Full end-to-end technical documentation — architecture, the ML model, features, and the reasoning behind every decision.</p>
+  </div>
+  <div class="meta-pills">
+    <span>Document v1.0</span><span>Final Year Project</span><span>Model: predictor_v1</span><span>Viva-ready</span>
+  </div>
+
+  <div class="callout note">
+    <span class="tag">How to use this document</span>
+    <p>Every claim here maps to the actual codebase. Section 7 (the ML system) is the core intellectual contribution and section 13 gives model answers to likely examiner questions. For installation see <code>SETUP_GUIDE.md</code>; for phase status see <code>README.md</code>.</p>
+  </div>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="n">1</span>Executive summary</h2>
+  <p>This is a <strong>role-based Learning Management System (LMS)</strong> for Sri Lankan <strong>O/L (Ordinary Level)</strong> students, built to study <strong>how parental involvement relates to student performance</strong> — and, crucially, to introduce a new way of <em>measuring</em> that involvement.</p>
+  <table>
+    <thead><tr><th>Role</th><th>What they do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Admin</strong></td><td>Provisions all accounts, uploads materials, builds &amp; grades quizzes, uploads report cards, runs risk predictions.</td></tr>
+      <tr><td><strong>Parent</strong></td><td>Monitors their linked child's activity, engagement &amp; results; opts into <strong>camera attention verification</strong>; receives notifications; views report cards.</td></tr>
+      <tr><td><strong>Child</strong></td><td>Studies materials and takes quizzes. Never sees a risk prediction (an ethical choice).</td></tr>
+    </tbody>
+  </table>
+  <p>Two intelligence layers sit on the LMS: <strong>(1)</strong> an explainable <strong>Random Forest</strong> risk predictor (<em>low / medium / high</em>, with reasons), and <strong>(2)</strong> a transparent <strong>Parental Engagement Index (PEI)</strong> formula.</p>
+  <div class="callout novel">
+    <span class="tag">The novelty</span>
+    <p>The camera points at the <strong>parent</strong>, not the student: it objectively verifies that a parent is genuinely attending to their child's progress, replacing unreliable self-reports.</p>
+  </div>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="n">2</span>Research positioning (the thesis)</h2>
+  <h3>2.1 The research gap and novelty</h3>
+  <p>The parental-involvement→performance link is <strong>already established</strong> in the literature — claiming to discover it would be a mistake. The genuine contribution is methodological: <strong>objective, camera-verified measurement of parental attention</strong> instead of self-reports. Every existing attention study points the camera at the <em>student</em>; <strong>no existing work points it at the parent</strong>. This applies <strong>Multimodal Learning Analytics (MMLA)</strong> to a new subject.</p>
+  <h3>2.2 Field vs methodology</h3>
+  <ul>
+    <li><strong>Field:</strong> Learning Analytics → Educational Data Mining → <strong>Multimodal Learning Analytics</strong> (behavioural logs + camera data).</li>
+    <li><strong>Methodology:</strong> <strong>Design Science Research (DSR)</strong> — build an artifact, then evaluate it.</li>
+  </ul>
+  <h3>2.3 Association, not causation</h3>
+  <p>Because the training data is <strong>simulated</strong>, the project demonstrates the <strong>method and pipeline</strong>, not a proven effect size. All results are framed as <strong>association / prediction</strong>, never causation — stated openly as a clear, honest scope.</p>
+  <h3>2.4 Ethical stance</h3>
+  <ul>
+    <li><strong>Privacy-first camera:</strong> video is processed in the browser; only the attention <em>number</em> + duration is stored — no raw frames leave the device.</li>
+    <li><strong>Minors + webcam:</strong> real data collection would require a formal ethics-committee review.</li>
+    <li><strong>No self-fulfilling labels:</strong> the child never sees their own risk score.</li>
+    <li><strong>Support, not blame:</strong> supportive language in all parent-facing risk copy.</li>
+  </ul>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="n">3</span>System architecture</h2>
+  <p>A <strong>single-page React app</strong> talks to <strong>two backends</strong>. Supabase provides auth (issues the JWT), the <code>profiles</code> table, and file storage. FastAPI owns all business logic and all authorization, talking to the database with the <strong>service-role key</strong> (which bypasses RLS). The Supabase JWT bridges the two.</p>
+<pre><code>┌───────────────────────── Browser (React SPA) ─────────────────────────┐
+│   Role-based UI · MediaPipe camera (client-side) · Recharts             │
+└───────────────┬───────────────────────────────┬──────────────────────┘
+                │ Supabase JWT (bearer)           │ Supabase JWT (bearer)
+                ▼                                 ▼
+   ┌──────────────────────┐          ┌────────────────────────────────┐
+   │  Supabase (hosted)   │          │   FastAPI backend (Python)      │
+   │  • Auth (issues JWT) │          │  • All business logic           │
+   │  • profiles table    │          │  • All role/ownership checks    │
+   │  • Storage (signed)  │          │  • ML predictor + PEI           │
+   └──────────┬───────────┘          └───────────────┬────────────────┘
+              │                                       │ service-role key
+              ▼             ┌─────────────────────────┘ (bypasses RLS)
+        ┌──────────────────────────────────┐
+        │  Supabase PostgreSQL (16 tables)  │  RLS enabled on every table
+        └──────────────────────────────────┘</code></pre>
+  <h3>Backend layering (3 tiers)</h3>
+  <p><strong>Routers</strong> (HTTP surface: role guards, ownership checks) → <strong>Services / ML</strong> (domain logic, the predictor, the PEI) → <strong>DB client</strong> (one accessor, <code>get_service_client()</code>). Every request: CORS → route → auth dependency (decode JWT + load profile) → role/ownership guard → service-role query → optional service/ML call → JSON.</p>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="n">4</span>Technology stack</h2>
+  <table>
+    <thead><tr><th>Layer</th><th>Technology</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td>React 18 + TypeScript, Vite</td><td>Fast dev, type safety, components</td></tr>
+      <tr><td>Styling</td><td>Tailwind CSS v4 ("Aurora Glass")</td><td>Utility-first design system</td></tr>
+      <tr><td>Charts</td><td>Recharts</td><td>Theme-aware, CVD-validated palettes</td></tr>
+      <tr><td>Camera</td><td>MediaPipe Tasks-Vision 0.10.35</td><td>Pre-trained 478-point face landmarker, in-browser</td></tr>
+      <tr><td>Backend</td><td>FastAPI (Python)</td><td>Async, typed, auto OpenAPI docs</td></tr>
+      <tr><td>Auth / DB / Storage</td><td>Supabase (Postgres + Auth + Storage)</td><td>Bundles roles, RLS, storage — ideal for minors' data</td></tr>
+      <tr><td>Machine learning</td><td>scikit-learn, pandas, numpy, joblib</td><td>Tree ensembles win on tabular data and are explainable</td></tr>
+      <tr><td>Testing</td><td>pytest + httpx; <code>tsc</code></td><td>Automated backend tests; frontend type-check</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="n">5</span>Database design</h2>
+  <p>16 tables; extension <code>pgcrypto</code>. Later-phase tables were created up-front so nothing needed a migration mid-project.</p>
+  <h3>5.1 Custom types (enums)</h3>
+  <table>
+    <thead><tr><th>Type</th><th>Values</th></tr></thead>
+    <tbody>
+      <tr><td><code>user_role</code></td><td>admin, parent, child</td></tr>
+      <tr><td><code>material_type</code></td><td>document, video, exam_paper, slide</td></tr>
+      <tr><td><code>question_type</code></td><td>mcq, short_answer</td></tr>
+      <tr><td><code>activity_action</code></td><td>view, download, video_watch, quiz_start, quiz_submit</td></tr>
+    </tbody>
+  </table>
+  <h3>5.2 The 16 tables</h3>
+  <table>
+    <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>profiles</td><td>Role + details on Supabase <code>auth.users</code> (PK = FK to auth.users).</td></tr>
+      <tr><td>parent_child_link</td><td>Many-to-many parent↔child bridge; <code>UNIQUE(parent_id, child_id)</code>. Linchpin of family-boundary auth.</td></tr>
+      <tr><td>subjects</td><td>O/L subjects.</td></tr>
+      <tr><td>learning_materials</td><td>Uploaded content (→ <code>materials</code> bucket path).</td></tr>
+      <tr><td>quizzes</td><td>Quiz metadata + optional <code>due_date</code>.</td></tr>
+      <tr><td>quiz_questions</td><td>Questions; options/correct_answer for MCQ auto-grade.</td></tr>
+      <tr><td>quiz_attempts</td><td>Submissions: score, answers, <code>question_scores</code>, <code>graded</code>.</td></tr>
+      <tr><td>student_activity</td><td>Every learning event — <strong>the predictor's behavioural fuel</strong>.</td></tr>
+      <tr><td>monitoring_sessions</td><td>Parent sessions: duration, pages_viewed, history_checks, camera flags.</td></tr>
+      <tr><td>attention_scores</td><td>Camera output (0–1 + seconds). <strong>Numbers only, never video.</strong></td></tr>
+      <tr><td>engagement_index</td><td>PEI output; also the predictor's parental-feature source.</td></tr>
+      <tr><td>academic_records</td><td>Term assessment/exam scores + attendance %.</td></tr>
+      <tr><td>predictions</td><td>risk_band, risk_score, top_factors (JSON explanation).</td></tr>
+      <tr><td>messages</td><td>Two-way parent↔admin messaging.</td></tr>
+      <tr><td>intervention_notes</td><td>Admin-only private staff case log.</td></tr>
+      <tr><td>notifications</td><td>In-app parent notifications; <code>read_at</code> feeds engagement.</td></tr>
+      <tr><td>report_cards</td><td>Admin PDF per student per term (<code>report-cards</code> bucket).</td></tr>
+    </tbody>
+  </table>
+  <h3>5.3 Row-Level Security — the "golden rule"</h3>
+  <div class="callout note">
+    <span class="tag">RLS-vs-API golden rule</span>
+    <p>RLS is <strong>enabled on all 16 tables</strong> (nothing is world-readable by default), but <strong>all role/ownership authorization runs in FastAPI using the service-role client, which bypasses RLS</strong>. A few simple reads (own profile; own links; authenticated reads of subjects/materials/quizzes) have policies and go direct to Supabase. Everything sensitive has <strong>RLS on but no policies</strong> — reachable only through the API, which applies its own checks.</p>
+  </div>
+  <p>A <code>SECURITY DEFINER</code> trigger creates each <code>profiles</code> row after signup, avoiding a client-insert race against RLS. Storage buckets <code>materials</code> and <code>report-cards</code> are both <strong>private</strong>; downloads use time-limited signed URLs.</p>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="n">6</span>Backend &amp; API</h2>
+  <h3>6.1 Authorization (role + ownership)</h3>
+  <p>Two layers: a <strong>role guard</strong> (<code>require_role("admin")</code> → 403 if disallowed) and an <strong>ownership check</strong> (a parent endpoint verifies a <code>parent_child_link</code> row for that exact child → 403 "Not linked to this child"). Role alone is never sufficient.</p>
+  <h3>6.2 Authentication</h3>
+  <p>The browser sends <code>Authorization: Bearer &lt;supabase-jwt&gt;</code>. The token is verified via Supabase's <strong>JWKS endpoint</strong> with <strong>asymmetric keys (ES256/RS256)</strong>, <code>audience="authenticated"</code>, <code>leeway=10s</code>. The user's <strong>role is read from the <code>profiles</code> table</strong>, not the JWT — the token authenticates identity; the DB is the source of truth for role.</p>
+  <h3>6.3 Endpoint inventory (~40 endpoints across 14 routers)</h3>
+  <p><em>Guard legend: any = any authenticated user · P+A = parent or admin.</em></p>
+  <table>
+    <thead><tr><th>Method · Path</th><th>Guard</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>GET /health</td><td>none</td><td>Liveness probe.</td></tr>
+      <tr><td>GET /profiles/me</td><td>any</td><td>Caller's own profile.</td></tr>
+      <tr><td>GET·POST /admin/users, PATCH·DELETE /admin/users/{id}</td><td>admin</td><td>List / create / update / delete accounts (blocks self-delete; cascades data).</td></tr>
+      <tr><td>POST·GET /admin/links, DELETE /admin/links/{id}</td><td>admin</td><td>Create / list / remove parent-child links.</td></tr>
+      <tr><td>GET /subjects · POST /subjects</td><td>any · admin</td><td>List / create subjects.</td></tr>
+      <tr><td>GET /materials · POST /materials · GET /materials/{id}/download</td><td>any · admin · any</td><td>List / upload / signed-URL download (graceful 404).</td></tr>
+      <tr><td>GET /quizzes · GET /quizzes/{id}</td><td>any</td><td>List quizzes / one quiz (answer key stripped for children).</td></tr>
+      <tr><td>GET /quizzes/attempts/me · POST /quizzes/{id}/attempts</td><td>child</td><td>Own attempts / submit (MCQs auto-graded).</td></tr>
+      <tr><td>GET /quizzes/{id}/attempts · POST /quizzes/attempts/{id}/grade · POST /quizzes</td><td>admin</td><td>View attempts / grade short answers / create quiz.</td></tr>
+      <tr><td>GET /activity/me · POST /activity</td><td>child</td><td>Own log / log an event.</td></tr>
+      <tr><td>GET /parent/children, .../{id}/activity, .../{id}/quiz-attempts</td><td>parent</td><td>Linked children &amp; their data (asserts link).</td></tr>
+      <tr><td>GET /parent/sessions · /parent/attention-history</td><td>parent</td><td>Monitoring sessions &amp; attention scores.</td></tr>
+      <tr><td>POST /parent/sessions · .../{id}/ping · .../{id}/end · .../{id}/attention</td><td>parent</td><td>Session lifecycle + store camera attention (numbers only).</td></tr>
+      <tr><td>GET /predictions/{child_id} · POST /predictions/run</td><td>P+A · admin</td><td>Latest prediction / batch-predict (alerts on worsened band).</td></tr>
+      <tr><td>GET /engagement/{child_id} · .../history</td><td>P+A</td><td>PEI + history for the trend chart.</td></tr>
+      <tr><td>GET /admin/students/roster, /{id}, /{id}/notes · POST /{id}/notes</td><td>admin</td><td>Risk roster / student detail / intervention notes.</td></tr>
+      <tr><td>GET /admin/analytics/engagement-performance</td><td>admin</td><td>Engagement-vs-performance scatter + Pearson r.</td></tr>
+      <tr><td>GET /notifications · POST /{id}/read · /read-all</td><td>parent</td><td>List (+ lazy due reminders) / mark read (engagement hook).</td></tr>
+      <tr><td>Report-card upload/list/download/delete (admin) &amp; list/download (parent)</td><td>admin / parent</td><td>PDF per term; signed URLs; parent asserts link.</td></tr>
+    </tbody>
+  </table>
+  <h3>6.4 Notifications service</h3>
+  <p>Four event types — <code>quiz_result</code>, <code>quiz_due</code>, <code>report_card</code>, <code>risk_alert</code> — fanned out to all linked parents, created only by the backend. <code>quiz_due</code> reminders are generated <strong>lazily</strong> (no cron) with dedup; <code>notify_safe</code> ensures a notification failure never fails the underlying action; and <strong>reading a notification raises the PEI</strong> via <code>check_frequency</code> — no new ML feature, no retrain.</p>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="n">7</span>The machine-learning system</h2>
+  <div class="callout novel"><span class="tag">Core contribution</span><p>Read this section carefully — it is the heart of the viva.</p></div>
+
+  <h3>7.0 How many models? (model inventory)</h3>
+  <p>A common opening question. The precise answer: <strong>we trained exactly one model.</strong> The full inventory:</p>
+  <table>
+    <thead><tr><th>#</th><th>Component</th><th>Type</th><th>Trained by us?</th><th>Shipped?</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Performance-risk predictor</strong> (Random Forest)</td><td>ML classifier</td><td><strong>Yes — the one trained model</strong></td><td>✅ predictor_v1</td></tr>
+      <tr><td>2</td><td>Logistic Regression</td><td>ML benchmark</td><td>Trained only to compare</td><td>❌</td></tr>
+      <tr><td>3</td><td>Gradient Boosting</td><td>ML benchmark</td><td>Trained only to compare</td><td>❌</td></tr>
+      <tr><td>4</td><td><strong>Camera face landmarker</strong> (MediaPipe, 478 pts)</td><td>Pre-trained deep model</td><td><strong>No — used as-is</strong></td><td>✅ in-browser</td></tr>
+      <tr><td>5</td><td><strong>Parental Engagement Index</strong></td><td>Rule-based formula</td><td>N/A — not ML</td><td>✅</td></tr>
+      <tr><td>—</td><td>Attention-quality classifier (scope B)</td><td>ML</td><td><strong>Deliberately not built</strong></td><td>❌</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="tag">One-line summary for the viva</span><p>"One trained model (the explainable Random Forest risk predictor), selected after benchmarking two alternatives; one pre-trained model used as-is (MediaPipe, for the camera); and one transparent rule-based scorer (the PEI, which is not machine learning). An attention-quality classifier was scoped but deliberately dropped." A lean, explainable strategy beats a stack of black boxes — and the camera task correctly reuses a proven pre-trained model rather than training one from scratch.</p></div>
+
+  <h3>7.1 The predictor model</h3>
+  <table>
+    <tbody>
+      <tr><th>Algorithm</th><td><code>RandomForestClassifier</code> (scikit-learn) — the committed production model</td></tr>
+      <tr><th>Hyperparameters</th><td><code>n_estimators=300</code>, <code>max_depth=None</code>, <code>random_state=42</code></td></tr>
+      <tr><th>Pipeline</th><td>Single <code>clf</code> step, <strong>no scaler</strong> (trees don't need scaling)</td></tr>
+      <tr><th>Split</th><td><strong>75% / 25%, stratified</strong> on risk band, seed 42</td></tr>
+      <tr><th>Cross-validation</th><td>5-fold, macro-F1</td></tr>
+      <tr><th>Target</th><td><code>risk_band</code> — three classes: <strong>low / medium / high</strong></td></tr>
+    </tbody>
+  </table>
+  <p>Two benchmarks were also trained: Logistic Regression (scaled) and Gradient Boosting.</p>
+  <h3>7.2 The 9 input features (frozen order)</h3>
+  <p>The feature contract lives in one file shared by <strong>both training and serving</strong>, so the vector is built identically at fit-time and predict-time. Order is frozen into the model's meta sidecar — reordering requires a retrain.</p>
+  <table>
+    <thead><tr><th>#</th><th>Feature</th><th>Meaning</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>quiz_avg_pct</td><td>Mean quiz score ratio (0–1)</td><td>quiz_attempts</td></tr>
+      <tr><td>2</td><td>quiz_count</td><td>Number of attempts</td><td>quiz_attempts</td></tr>
+      <tr><td>3</td><td>material_activity</td><td>Count of activity events</td><td>student_activity</td></tr>
+      <tr><td>4</td><td>avg_watch_percent</td><td>Mean video watch %</td><td>student_activity</td></tr>
+      <tr><td>5</td><td>attendance_pct</td><td>Attendance %</td><td>academic_records</td></tr>
+      <tr><td>6</td><td>prior_avg_score</td><td>Mean past assessment + exam scores</td><td>academic_records</td></tr>
+      <tr><td>7</td><td>monitoring_hours</td><td>Parent monitoring hours</td><td>engagement_index</td></tr>
+      <tr><td>8</td><td>check_frequency</td><td>Parent check-ins</td><td>engagement_index</td></tr>
+      <tr><td>9</td><td>parental_attention</td><td>Camera attention (0–1)</td><td>engagement_index</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Missing-data policy:</strong> missing signals default to 0 (a data-less child correctly reads as elevated risk) — <strong>except</strong> <code>parental_attention</code>, which defaults to the neutral <strong>0.5 placeholder</strong> until the camera supplies real values.</p>
+  <h3>7.3 Why Random Forest (explainability over raw accuracy)</h3>
+  <ol>
+    <li><strong>Tree ensembles beat neural networks on tabular data.</strong></li>
+    <li><strong>Explainability is the point</strong> — the feature importances <em>are</em> the parental-factor argument; a black box would defeat the research purpose.</li>
+  </ol>
+  <div class="callout warn"><span class="tag">Honest note for the viva</span><p>On the held-out set, Gradient Boosting is marginally ahead and Logistic Regression has the best CV macro-F1 — all three are within ~1%. RF was chosen for <strong>explainability</strong>, not because it dominated every metric. That transparency is itself defensible.</p></div>
+  <h3>7.4 Evaluation (predictor_v1, the winning RF)</h3>
+  <table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Accuracy</td><td><strong>0.7452</strong></td></tr>
+      <tr><td>Precision (macro)</td><td>0.7705</td></tr>
+      <tr><td>Recall (macro)</td><td>0.7394</td></tr>
+      <tr><td><strong>F1 (macro)</strong></td><td><strong>0.7521</strong></td></tr>
+      <tr><td>CV F1 (macro) mean ± std</td><td>0.7281 ± 0.037</td></tr>
+    </tbody>
+  </table>
+  <p>Trained on <strong>1,680 rows</strong> (1,200 simulated + 480 recast from real xAPI data). Feature importances: <strong>prior_avg_score 0.218</strong> &gt; quiz_avg_pct 0.163 &gt; attendance_pct 0.129 &gt; monitoring_hours 0.098 &gt; quiz_count 0.097 &gt; avg_watch_percent 0.089 &gt; material_activity 0.081 &gt; check_frequency 0.067 &gt; parental_attention 0.059.</p>
+  <h3>7.5 Training data generation (simulation)</h3>
+  <p><strong>Why simulate?</strong> No public dataset ships in the exact feature schema. So public datasets are <em>mined for documented relationships</em>, which are then reproduced in a simulated Sri Lankan O/L dataset in that schema.</p>
+  <ul>
+    <li><strong>xAPI-Edu-Data</strong> (480 rows) — primary grounding, carries parental fields (e.g. survey Yes→1.32 vs No→0.66; absences under-7→1.44 vs above-7→0.41).</li>
+    <li><strong>UCI Student Performance</strong> — family-context features.</li>
+    <li><strong>OULAD</strong> — large behavioural reference (optional).</li>
+  </ul>
+  <p><strong>Procedure (seed 42):</strong> a latent "engaged household + able student" factor drives correlated features; a weighted success score (weights echo the literature — prior grades 0.24, quiz avg 0.20, attendance 0.15, parental ~0.30 combined) + noise maps to a risk band (≥0.60 low, ≥0.42 medium, else high). Every row is tagged <code>data_source</code> for transparency; 480 real xAPI rows are recast into the schema.</p>
+  <h3>7.6 The Parental Engagement Index (a formula, not ML)</h3>
+<pre><code>PEI = 0.4 · norm(monitoring_hours)   (cap 10 h)
+    + 0.3 · norm(check_frequency)    (cap 25)
+    + 0.3 · parental_attention       (0.5 placeholder until the camera)</code></pre>
+  <p><code>check_frequency</code> = history-checks + notifications the parent has read. The normalisation caps <strong>match the training-data caps</strong>, so a runtime PEI is comparable to the features the model trained on. The <code>engagement_index</code> table is both a product surface and the predictor's parental-feature source.</p>
+  <h3>7.7 Serving &amp; explanations</h3>
+  <p>The model + meta load once and cache. A prediction rebuilds the vector <strong>in the frozen order</strong> as a named-column DataFrame, then <code>predict_proba</code> gives the band + confidence. <strong>Explanations</strong> take the top-4 features by <em>global</em> importance, compared to a population midpoint, as "raises/lowers risk" lines with the child's value.</p>
+  <div class="callout warn"><span class="tag">Honest nuance</span><p>These are <strong>global importance rankings, not per-child SHAP attributions</strong> — the same 4 factors appear for every child; only the values/direction personalise. SHAP is the natural next step.</p></div>
+  <h3>7.8 The feedback loop</h3>
+  <p>Reading a risk alert raises <code>check_frequency</code> → raises the PEI → feeds the predictor's parental features on the next run. Parental responsiveness thus flows back into the model — without changing the model itself.</p>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="n">8</span>The camera attention feature (the novelty)</h2>
+  <p><em>Phase 7 · scope A+E (attention verification + liveness), supervisor-approved. The camera points at the <strong>parent</strong>, entirely in the browser.</em></p>
+  <h3>Pipeline</h3>
+  <ol>
+    <li><strong>Consent gate</strong> — explains on-device processing, no video stored, liveness, on-air indicator, 3-minute minimum. Nothing starts until accepted.</li>
+    <li><strong>Face landmarking</strong> — MediaPipe's pre-trained 478-point FaceLandmarker at ~8 fps on a hidden self-view (used as-is).</li>
+    <li><strong>Liveness first (the "E")</strong> — confirms a real person via blink OR head motion; 8s timeout → retryable failure.</li>
+    <li><strong>Eyes-on-screen heuristic</strong> — attentive only if iris is centred in both eyes AND head faces forward.</li>
+    <li><strong>Accumulation + debounce</strong> — a 1.5s grace window means a blink doesn't drop the count; capped frame gaps stop stalls inflating totals.</li>
+    <li><strong>Anti-gaming</strong> — switching tabs counts as inattentive.</li>
+    <li><strong>Minimum-time lock</strong> — genuine tracking must accrue ≥3 minutes before Stop enables (with a live countdown).</li>
+    <li><strong>Result POST</strong> — only <code>{attentive_seconds, total_seconds, liveness_passed}</code> is sent. <strong>No video/frames ever leave the browser.</strong></li>
+  </ol>
+  <div class="callout note"><span class="tag">Privacy &amp; testability by design</span><p>The gaze/liveness/accumulation logic is pure functions (unit-testable with fixtures), and a mock tracker enables full end-to-end flow testing without a real webcam. Camera denied/absent → graceful behaviour-only monitoring with the 0.5 attention placeholder (no schema change — the "socket" pre-existed).</p></div>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="n">9</span>Frontend &amp; feature walkthrough by role</h2>
+  <h3>9.1 Admin portal</h3>
+  <p><strong>Users</strong> (searchable/paginated table, create/edit/delete, role charts) · <strong>Links</strong> (parent↔child) · <strong>Materials</strong> (upload, filters, signed downloads) · <strong>Quizzes</strong> (dynamic MCQ/short-answer builder, results, short-answer <em>grading</em> modal) · <strong>Risk Predictions</strong> (risk-sorted roster, "Run predictions", model-health metrics) · <strong>Insights</strong> (engagement-vs-performance scatter + correlation, "association not causation") · <strong>Student Detail</strong> (risk factors, academics, report-card upload, private intervention notes).</p>
+  <h3>9.2 Parent portal</h3>
+  <p>Child selector opens a <strong>monitoring session</strong> (navigation sends pings; switching child ends it). The <strong>camera panel</strong> is mounted at portal level so it survives navigation. <strong>Overview</strong>: the engagement <strong>LampGauge</strong>, formula breakdown, engagement trend, the <strong>PredictionCard</strong> (band + confidence + top factors + risk scale), and activity/score charts. Plus <strong>Notifications</strong> (deep-linking), <strong>Activity</strong>, <strong>Quiz Scores</strong> (ungraded → "Awaiting grading"), <strong>Report Cards</strong>, <strong>Monitoring Sessions</strong>, <strong>Attention History</strong>.</p>
+  <h3>9.3 Child portal</h3>
+  <p><strong>Learn</strong> (subjects → materials with inline video + in-app PDF/image modal viewer; quizzes with a "best %" badge; quiz-taker modal — <strong>answer key never sent</strong>) and <strong>My Progress</strong> (trend, activity, scores). <strong>No risk prediction is ever shown to the child.</strong></p>
+  <h3>9.4 Design system</h3>
+  <p>"Aurora Glass": indigo primary, violet accent, clay for risk; Bricolage Grotesque / Plus Jakarta Sans / IBM Plex Mono; CSS-only motion (disabled under reduced-motion); the signature LampGauge; persisted dark mode; CVD-validated chart palettes.</p>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="n">10</span>Development phases &amp; rationale</h2>
+  <div class="callout note"><span class="tag">Guiding principle</span><p>The schema included the camera's "socket" (<code>attention_scores</code>, <code>camera_enabled</code>) from day one, so Phase 7 needed no schema change. Only Phase 5 required a dataset.</p></div>
+  <table>
+    <thead><tr><th>Phase</th><th>Built</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>0 · Setup</td><td>React+FastAPI+Supabase scaffold, buckets</td><td>Deployable, connected skeleton first.</td></tr>
+      <tr><td>1 · Auth &amp; roles</td><td>Auth, profiles, no self-signup, linking, RLS</td><td>Matches a school issuing credentials; link policy stops cross-family reads.</td></tr>
+      <tr><td>2 · Admin content</td><td>Subjects, materials, quizzes</td><td>API writes + admin guard; reads opened so later phases need no new policies.</td></tr>
+      <tr><td>3 · Child learning</td><td>My Learning, inline video, quizzes</td><td>Answer key stripped; every event logged (predictor fuel); child never sees risk.</td></tr>
+      <tr><td>4 · Parent monitoring</td><td>Child selector, sessions, tabs</td><td>Real behavioural data for the PEI; attention_scores reserved for Phase 7.</td></tr>
+      <tr><td>5 · ML (thesis core)</td><td>Feature contract, simulation, PEI, RF predictor, serving</td><td>The one trained model; explainable RF; honest simulated framing.</td></tr>
+      <tr><td>6 · Dashboards</td><td>Risk roster, student detail + notes, engagement trend</td><td>Integration/polish; private staff notes (support-not-blame).</td></tr>
+      <tr><td>7 · Camera (novelty)</td><td>Client-side attention + liveness, consent, numbers-only POST</td><td>Camera on the parent — the MMLA contribution (scope A+E).</td></tr>
+      <tr><td>+ Notifications / report cards</td><td>4 event types, lazy reminders, PDFs</td><td>In-app only; reads feed engagement (no retrain).</td></tr>
+      <tr><td>+ Short-answer grading</td><td>Admin grades; parent notified once complete</td><td>No misleading partial score announced.</td></tr>
+    </tbody>
+  </table>
+  <p>The original <strong>teacher role was removed</strong> and folded into admin, simplifying the model to admin/parent/child.</p>
+
+  <!-- 11 -->
+  <h2 id="s11"><span class="n">11</span>Key engineering decisions &amp; why</h2>
+  <ul>
+    <li><strong>Thread-local Supabase client</strong> — per-thread reuse (avoids ~220ms rebuilds) without sharing an HTTP pool across threadpool threads, which caused intermittent disconnects.</li>
+    <li><strong>"Phantom CORS" fix</strong> — Starlette's default 500 is generated outside the CORS middleware, so the browser misreports it; a global handler keeps the CORS header, and missing-file errors become clean 404s with actionable messages.</li>
+    <li><strong>Lazy notification generation</strong> — no cron; <code>quiz_due</code> reminders generated on demand with dedup.</li>
+    <li><strong>Manual upsert-by-key</strong> — predictions &amp; engagement index upserted by hand where no unique constraint exists.</li>
+    <li><strong>notify_safe everywhere</strong> — a notification failure never fails the core action.</li>
+    <li><strong>Answer-key stripping</strong> for children; <strong>short-answer notification deferred</strong> until fully graded.</li>
+  </ul>
+
+  <!-- 12 -->
+  <h2 id="s12"><span class="n">12</span>Limitations &amp; honest scope</h2>
+  <ol>
+    <li><strong>Trained on simulated data</strong> — accuracy (~74.5%) and explanations reflect simulated relationships; association, not causation; real deployment needs a consented real cohort.</li>
+    <li><strong>Camera needs real-device calibration</strong> — gaze thresholds tuned on controlled input; treat attention % as indicative.</li>
+    <li><strong>PEI is a formula, not ML</strong> — reflects chosen weights, by design.</li>
+    <li><strong>Explanations are global-importance rankings, not per-child SHAP.</strong></li>
+    <li><strong><code>parental_attention</code> is a 0.5 placeholder</strong> in training and the least-important feature — the real signal is new.</li>
+    <li><strong>Scope:</strong> one trained model + one pre-trained (MediaPipe) + one rule-based scorer; no self-signup; no email/SMS/push; parent face-matching deliberately not built (biometric PII + ethics; liveness suffices).</li>
+  </ol>
+
+  <!-- 13 -->
+  <h2 id="s13"><span class="n">13</span>Anticipated viva questions &amp; answers</h2>
+
+  <div class="qa"><p class="q">Q: What is your actual research contribution?</p><p class="a">Objective, camera-verified measurement of parental attention. The involvement→performance link is established; my contribution applies Multimodal Learning Analytics to a new subject — the parent — replacing self-reports with an on-device attention measurement.</p></div>
+  <div class="qa"><p class="q">Q: Why simulated data? Isn't that a weakness?</p><p class="a">No public dataset holds that exact feature combination per O/L student. I mined public datasets (xAPI, UCI) for the documented relationships and reproduced them in my schema, plus recast 480 real xAPI rows. I demonstrate the method and pipeline; every result is framed as association, not causation; every row is tagged with its data_source.</p></div>
+  <div class="qa"><p class="q">Q: Why Random Forest, not deep learning?</p><p class="a">Tree ensembles beat neural networks on tabular data, and — decisively — explainability: the feature importances are my argument. I benchmarked Logistic Regression and Gradient Boosting; they're within ~1%, and I kept RF for explainability, not dominance. That honesty is defensible.</p></div>
+  <div class="qa"><p class="q">Q: Is ~75% accuracy good?</p><p class="a">On three classes, chance is ~33%, so 0.75 accuracy / 0.752 macro-F1 is a solid, balanced result — but it's on simulated + xAPI data, so it validates the pipeline, not a real-world effect size.</p></div>
+  <div class="qa"><p class="q">Q: How does the model explain itself?</p><p class="a">Top-4 features by global importance, compared to a population midpoint, as plain-language "raises/lowers risk" lines with the child's value. I'm transparent these are global rankings, not per-child SHAP — a clear next step.</p></div>
+  <div class="qa"><p class="q">Q: How do you protect one family's data from another?</p><p class="a">Every table has RLS enabled; sensitive tables have no client-read policies, so they're reachable only through my API, which enforces role and ownership — a parent endpoint always verifies a parent_child_link row for that child, else 403.</p></div>
+  <div class="qa"><p class="q">Q: Isn't a camera on a parent an ethics problem?</p><p class="a">I designed for it: all processing is in-browser; only a number + duration is stored — no video leaves the device. There's a consent gate, a visible on-air indicator, and a liveness check. Real data collection would require a formal ethics-committee review, given minors and a webcam.</p></div>
+  <div class="qa"><p class="q">Q: How do you stop the parent gaming the attention timer?</p><p class="a">A liveness check confirms a real person; switching tabs counts as inattentive; frame-gap caps stop a stalled tab inflating totals; and a 3-minute minimum must accrue before stopping.</p></div>
+  <div class="qa"><p class="q">Q: Why doesn't the child see their risk score?</p><p class="a">A "high risk" label can be self-fulfilling for a teenager. Risk is visible only to admins and parents, always in supportive language.</p></div>
+  <div class="qa"><p class="q">Q: What would you do next?</p><p class="a">Retrain on a real consented cohort; a real-device gaze-calibration pass; per-child SHAP explanations; and (ethics permitting) fold the real camera attention signal into training rather than the 0.5 placeholder.</p></div>
+
+  <footer>
+    O/L LMS with Parental Monitoring — Technical Documentation v1.0. Generated for viva defense. For installation see SETUP_GUIDE.md; for phase status see README.md.
+  </footer>
+</main>
+</div>
+</body>
+</html>

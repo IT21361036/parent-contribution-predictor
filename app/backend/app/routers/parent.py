@@ -23,6 +23,12 @@ class PingSessionRequest(BaseModel):
     kind: str  # 'page_view' | 'history_check'
 
 
+class FocusLossRequest(BaseModel):
+    # One "the parent left the portal" event during a monitoring session (focus
+    # mode). away_seconds is how long they were gone before returning.
+    away_seconds: int
+
+
 class AttentionRequest(BaseModel):
     # The camera runs entirely in the browser; only these computed numbers are
     # ever sent — no video/frames. Phase 7 (parent attention verification).
@@ -189,6 +195,39 @@ def ping_session(session_id: str, body: PingSessionRequest, user: CurrentUser = 
     return result.data[0]
 
 
+@router.post("/sessions/{session_id}/focus-loss")
+def record_focus_loss(session_id: str, body: FocusLossRequest, user: CurrentUser = Depends(require_parent)):
+    """Log one focus-mode interruption: the parent left the portal (switched tab
+    or window) during this session and has now returned. Increments the leave
+    count and adds the away time — surfaced in the Monitoring Sessions view."""
+    away = max(0, body.away_seconds)
+    client = get_service_client()
+    session = (
+        client.table("monitoring_sessions")
+        .select("focus_losses, away_seconds")
+        .eq("id", session_id)
+        .eq("parent_id", user.id)
+        .maybe_single()
+        .execute()
+        .data
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    result = (
+        client.table("monitoring_sessions")
+        .update(
+            {
+                "focus_losses": (session.get("focus_losses") or 0) + 1,
+                "away_seconds": (session.get("away_seconds") or 0) + away,
+            }
+        )
+        .eq("id", session_id)
+        .execute()
+    )
+    return result.data[0]
+
+
 @router.post("/sessions/{session_id}/end")
 def end_session(session_id: str, user: CurrentUser = Depends(require_parent)):
     client = get_service_client()
@@ -240,19 +279,26 @@ def record_attention(session_id: str, body: AttentionRequest, user: CurrentUser 
         raise HTTPException(status_code=404, detail="Session not found")
 
     score = round(body.attentive_seconds / body.total_seconds, 4)
-    row = (
-        client.table("attention_scores")
-        .insert(
-            {
-                "session_id": session_id,
-                "attention_score": score,
-                "attentive_seconds": body.attentive_seconds,
-                "total_seconds": body.total_seconds,
-            }
-        )
-        .execute()
-        .data[0]
+    values = {
+        "session_id": session_id,
+        "attention_score": score,
+        "attentive_seconds": body.attentive_seconds,
+        "total_seconds": body.total_seconds,
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # One attention row per session, refreshed as the camera runs. The parent's
+    # camera now stays on for the whole login, so this endpoint is called
+    # periodically and on every child/session switch — upsert by hand (there's no
+    # unique constraint on session_id) so the running totals update in place
+    # instead of piling up a row per save. Keeping it to one row per session also
+    # keeps the engagement scorer's per-session average correct.
+    existing = (
+        client.table("attention_scores").select("id").eq("session_id", session_id).execute().data
     )
+    if existing:
+        row = client.table("attention_scores").update(values).eq("id", existing[0]["id"]).execute().data[0]
+    else:
+        row = client.table("attention_scores").insert(values).execute().data[0]
     # Mark that the camera ran and record the liveness result on the session.
     client.table("monitoring_sessions").update(
         {"camera_enabled": True, "liveness_passed": body.liveness_passed}

@@ -181,6 +181,8 @@ export interface MonitoringSession {
   history_checks: number
   camera_enabled: boolean
   liveness_passed: boolean | null
+  focus_losses: number
+  away_seconds: number
 }
 
 // Admin analytics: one student on the engagement->performance scatter.

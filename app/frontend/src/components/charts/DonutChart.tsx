@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import type { TooltipValueType } from 'recharts'
 import { CHART } from './chartTheme'
 
 export interface DonutSlice {
@@ -34,9 +35,9 @@ export function DonutChart({
               contentStyle={CHART.tooltip}
               labelStyle={CHART.tooltipLabel}
               itemStyle={CHART.tooltipItem}
-              formatter={(v: number | string, name: string) => [
+              formatter={(v: TooltipValueType | undefined, name: number | string | undefined) => [
                 `${v} (${total ? Math.round((Number(v) / total) * 100) : 0}%)`,
-                name,
+                name ?? '',
               ]}
             />
             <Pie

@@ -113,7 +113,9 @@ create table monitoring_sessions (
   pages_viewed int default 0,
   history_checks int default 0,
   camera_enabled boolean default false,   -- Phase 7 socket
-  liveness_passed boolean
+  liveness_passed boolean,
+  focus_losses int default 0,             -- times the parent left the portal (focus mode)
+  away_seconds int default 0              -- total seconds away during the session
 );
 
 -- ========== ATTENTION SCORES (Phase 7 camera output — numbers only, no video) ==========

@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { TooltipValueType } from 'recharts'
 import { CHART } from './chartTheme'
 
 export interface BarPoint {
@@ -31,7 +32,7 @@ export function BarsChart({
           contentStyle={CHART.tooltip}
           labelStyle={CHART.tooltipLabel}
           itemStyle={CHART.tooltipItem}
-          formatter={(v: number | string) => [valueFormatter(Number(v)), null]}
+          formatter={(v: TooltipValueType | undefined) => [valueFormatter(Number(v)), null]}
           cursor={{ fill: CHART.cursorFill, opacity: 0.5 }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
