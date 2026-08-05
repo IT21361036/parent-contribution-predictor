@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viva Guide — O/L LMS with Parental Monitoring</title>
+<style>
+  :root{
+    --indigo:#4F46E5; --violet:#9333EA; --clay:#C9553B; --ink:#1E1B3A;
+    --canvas:#F4F5FB; --card:#ffffff; --line:#E5E7F0; --muted:#64748b;
+    --text:#1f2333; --green:#0f7b53; --amber:#9a6700;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--canvas);color:var(--text);font-family:var(--sans);
+       line-height:1.62;font-size:16px;}
+  .wrap{display:grid;grid-template-columns:290px 1fr;max-width:1440px;margin:0 auto;}
+
+  /* ---------- Sidebar ---------- */
+  nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+          background:var(--ink);color:#cdd2ea;padding:26px 18px;}
+  nav.toc .brand{font-weight:800;font-size:15px;color:#fff;letter-spacing:-.01em;line-height:1.35;}
+  nav.toc .brand small{display:block;font-weight:500;color:#9aa0c7;font-size:11.5px;margin-top:6px;
+          text-transform:uppercase;letter-spacing:.14em;font-family:var(--mono);}
+  nav.toc ol{list-style:none;counter-reset:s;padding:0;margin:20px 0 0;}
+  nav.toc li{counter-increment:s;margin:1px 0;}
+  nav.toc a{display:block;color:#b9bfe0;text-decoration:none;font-size:13px;padding:6px 10px;
+            border-radius:8px;transition:background .15s,color .15s;border-left:2px solid transparent;}
+  nav.toc a::before{content:counter(s) ".";color:#7a80ad;margin-right:8px;font-family:var(--mono);font-size:11.5px;}
+  nav.toc a:hover{background:rgba(255,255,255,.08);color:#fff;}
+  nav.toc a.active{background:rgba(147,51,234,.18);color:#fff;border-left-color:var(--violet);}
+  .toolbox{margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);}
+  .toolbox button{width:100%;margin:5px 0;padding:8px 10px;border-radius:8px;cursor:pointer;
+      border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#dfe3f5;
+      font-family:var(--sans);font-size:12.5px;transition:background .15s;}
+  .toolbox button:hover{background:rgba(255,255,255,.14);}
+  #q-search{width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:#fff;font-size:12.5px;font-family:var(--sans);margin-top:5px;}
+  #q-search::placeholder{color:#8b91bb;}
+
+  main{padding:52px 58px 120px;max-width:1000px;}
+  .hero{border-left:5px solid var(--indigo);padding:6px 0 6px 22px;margin-bottom:10px;}
+  h1{font-size:33px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em;color:var(--ink);}
+  .sub{color:var(--muted);font-size:15px;margin:0;}
+  .meta-pills{margin:18px 0 30px;display:flex;gap:8px;flex-wrap:wrap;}
+  .meta-pills span{background:#eceafc;color:var(--indigo);font-family:var(--mono);font-size:11.5px;
+        padding:5px 11px;border-radius:999px;letter-spacing:.04em;}
+
+  h2{font-size:24px;margin:56px 0 14px;letter-spacing:-.01em;color:var(--ink);
+     border-top:1px solid var(--line);padding-top:34px;scroll-margin-top:20px;}
+  h2 .n{color:var(--violet);font-family:var(--mono);font-size:17px;margin-right:10px;}
+  h3{font-size:18px;margin:30px 0 8px;color:#2a2740;}
+  h4{font-size:15px;margin:22px 0 6px;color:#3a3752;}
+  p{margin:12px 0;} a{color:var(--indigo);} strong{color:#15131f;}
+  ul,ol{padding-left:22px;} li{margin:5px 0;}
+
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14px;
+        background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:#f0f1f8;color:#3a3752;font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#faf9ff;}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px;}
+  .win{background:#e8f6f0 !important;}
+  .win td{font-weight:600;}
+  code{font-family:var(--mono);background:#eef0f7;color:#3f3a66;padding:1.5px 6px;border-radius:5px;font-size:13px;}
+  pre{background:var(--ink);color:#e7e9f8;padding:18px 20px;border-radius:12px;overflow-x:auto;
+      font-family:var(--mono);font-size:13px;line-height:1.55;margin:18px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+
+  .callout{border-radius:12px;padding:16px 20px;margin:20px 0;border:1px solid;font-size:14.5px;}
+  .callout p:first-child{margin-top:0;} .callout p:last-child{margin-bottom:0;}
+  .note{background:#eef2ff;border-color:#c7d0f7;}
+  .novel{background:#f6ecff;border-color:#e2c7f7;}
+  .warn{background:#fdf0ec;border-color:#f0cabb;}
+  .good{background:#e9f7f1;border-color:#b6e0cd;}
+  .callout .tag{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
+       letter-spacing:.1em;display:block;margin-bottom:6px;}
+  .note .tag{color:var(--indigo);} .novel .tag{color:var(--violet);}
+  .warn .tag{color:var(--clay);} .good .tag{color:var(--green);}
+
+  /* ---------- Collapsible Q&A ---------- */
+  .qa{margin:12px 0;border-left:3px solid var(--violet);background:#faf8ff;border-radius:0 10px 10px 0;
+      overflow:hidden;}
+  .qa .q{font-weight:700;color:var(--ink);margin:0;padding:13px 18px;cursor:pointer;
+         display:flex;gap:10px;align-items:flex-start;user-select:none;font-size:15px;}
+  .qa .q:hover{background:#f3eeff;}
+  .qa .q::before{content:"Q";font-family:var(--mono);color:var(--violet);font-size:12px;
+      background:#ecdcff;border-radius:5px;padding:2px 7px;flex-shrink:0;margin-top:2px;}
+  .qa .q::after{content:"+";margin-left:auto;color:var(--violet);font-family:var(--mono);
+      font-size:17px;flex-shrink:0;line-height:1;}
+  .qa.open .q::after{content:"−";}
+  .qa .a{margin:0;padding:0 18px 15px 47px;color:#33304a;display:none;font-size:14.5px;}
+  .qa.open .a{display:block;}
+  .qa.hidden{display:none;}
+  .hard .qa{border-left-color:var(--clay);background:#fdf6f4;}
+  .hard .qa .q::before{background:#f7ddd4;color:var(--clay);}
+  .hard .qa .q::after{color:var(--clay);}
+  .hard .qa .q:hover{background:#fbeee9;}
+
+  /* ---------- Screenshots ---------- */
+  figure.shot{margin:24px 0;background:var(--card);border:1px solid var(--line);
+      border-radius:12px;overflow:hidden;}
+  figure.shot img{display:block;width:100%;height:auto;border-bottom:1px solid var(--line);}
+  figure.shot figcaption{padding:11px 16px;font-size:13.5px;color:var(--muted);}
+  figure.shot figcaption b{color:#3a3752;}
+  figure.shot .ph{display:none;padding:34px 22px;text-align:center;background:
+      repeating-linear-gradient(45deg,#f7f8fd,#f7f8fd 10px,#f1f3fa 10px,#f1f3fa 20px);
+      border-bottom:1px dashed #c9cee4;}
+  figure.shot.missing img{display:none;}
+  figure.shot.missing .ph{display:block;}
+  .ph .ico{font-size:26px;}
+  .ph .fn{font-family:var(--mono);font-size:12.5px;color:var(--indigo);background:#eceafc;
+      padding:4px 10px;border-radius:6px;display:inline-block;margin:9px 0 6px;}
+  .ph .hint{font-size:13px;color:var(--muted);max-width:520px;margin:0 auto;}
+
+  footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:60px;padding-top:20px;}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;}
+    nav.toc{position:static;height:auto;}
+    main{padding:30px 20px 80px;}
+  }
+  @media print{
+    nav.toc{display:none;} .wrap{display:block;} main{max-width:none;padding:0;}
+    body{background:#fff;font-size:11pt;}
+    h2{break-after:avoid;} table,pre,.callout,.qa,figure.shot{break-inside:avoid;}
+    .qa .a{display:block !important;} .qa .q::after{display:none;}
+    a{color:inherit;text-decoration:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="toc">
+  <div class="brand">Viva Guide<small>O/L LMS + Parental Monitoring</small></div>
+  <ol>
+    <li><a href="#s1">The 60-second answer</a></li>
+    <li><a href="#s2">Research positioning</a></li>
+    <li><a href="#s3">System architecture</a></li>
+    <li><a href="#s4">The database</a></li>
+    <li><a href="#s5">The backend</a></li>
+    <li><a href="#s6">The ML system</a></li>
+    <li><a href="#s7">Model inventory — what runs where</a></li>
+    <li><a href="#s8">Datasets &amp; ML process</a></li>
+    <li><a href="#s9">Why this model &amp; not others</a></li>
+    <li><a href="#s10">Making a prediction</a></li>
+    <li><a href="#s11">Explainability</a></li>
+    <li><a href="#s12">Engagement Index</a></li>
+    <li><a href="#s13">Camera attention</a></li>
+    <li><a href="#s14">Application walkthrough</a></li>
+    <li><a href="#s15">Limitations</a></li>
+    <li><a href="#s16">Viva Q&amp;A</a></li>
+    <li><a href="#s17">The hard questions</a></li>
+    <li><a href="#s18">Cheat sheet</a></li>
+  </ol>
+  <div class="toolbox">
+    <input id="q-search" type="search" placeholder="Search all questions…" aria-label="Search questions">
+    <button onclick="allQA(true)">Expand all answers</button>
+    <button onclick="allQA(false)">Collapse all (quiz me)</button>
+    <button onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <h1>Viva Guide</h1>
+    <p class="sub">O/L LMS with Parental Monitoring — the complete end-to-end defence: architecture, the model, why every alternative was rejected, and ~50 examiner questions.</p>
+  </div>
+  <div class="meta-pills">
+    <span>predictor_v1</span><span>trained 2026-07-25</span><span>18 tables</span>
+    <span>54 endpoints</span><span>9 features</span><span>macro-F1 0.7521</span>
+  </div>
+
+  <div class="callout note">
+    <span class="tag">How to use this page</span>
+    <p><strong>Questions are collapsed by default</strong> — read the question, answer it out loud, then click to check yourself. Use <em>Collapse all (quiz me)</em> in the sidebar to reset, or the search box to find a specific question. <strong>Print / Save as PDF</strong> expands every answer automatically.</p>
+    <p>Every figure in this document was read from the codebase and <code>predictor_v1.meta.json</code>, not copied from earlier docs. Where <code>TECHNICAL_DOCUMENTATION.html</code> disagrees, it is older — it predates optional subjects, focus mode and short-answer grading, and still says 16 tables.</p>
+  </div>
+
+  <!-- ============ 1 ============ -->
+  <h2 id="s1"><span class="n">1</span>The 60-second answer</h2>
+  <p>If the examiner opens with <em>"tell me about your project"</em>, this is the whole thing in one breath:</p>
+  <div class="callout novel">
+    <span class="tag">Say this</span>
+    <p>"This is a role-based Learning Management System for Sri Lankan O/L students with three portals — admin, parent and child. On top of the LMS sit two intelligence layers: an explainable Random Forest that predicts each student's performance risk as low, medium or high <em>with reasons attached</em>, and a transparent Parental Engagement Index formula scoring how involved each parent is.</p>
+    <p>The contribution is <strong>not</strong> the finding that parental involvement matters — that's already established. It's the <strong>measurement method</strong>: a webcam pointed at the <strong>parent</strong>, verifying in-browser that they're genuinely attending to their child's progress, replacing self-reported involvement with an objective signal. That makes it Multimodal Learning Analytics applied to a new subject.</p>
+    <p>One model was trained by us. One pre-trained model is used as-is for the camera. One scorer is a deliberate formula, not machine learning."</p>
+  </div>
+
+  <h3>1.1 Model inventory — the most common opening question</h3>
+  <table>
+    <thead><tr><th>#</th><th>Component</th><th>Type</th><th>Trained by us?</th><th>Shipped?</th></tr></thead>
+    <tbody>
+      <tr class="win"><td>1</td><td><strong>Performance-risk predictor</strong> (Random Forest)</td><td>ML classifier</td><td><strong>Yes — the one trained model</strong></td><td>✅ <code>predictor_v1</code></td></tr>
+      <tr><td>2</td><td>Logistic Regression</td><td>ML benchmark</td><td>Trained only to compare</td><td>❌</td></tr>
+      <tr><td>3</td><td>Gradient Boosting</td><td>ML benchmark</td><td>Trained only to compare</td><td>❌</td></tr>
+      <tr><td>4</td><td><strong>MediaPipe FaceLandmarker</strong> (478 pts)</td><td>Pre-trained deep model</td><td><strong>No — used as-is</strong></td><td>✅ in-browser</td></tr>
+      <tr><td>5</td><td><strong>Parental Engagement Index</strong></td><td>Rule-based formula</td><td>N/A — not ML</td><td>✅</td></tr>
+      <tr><td>—</td><td>Attention-quality classifier</td><td>ML</td><td><strong>Deliberately not built</strong></td><td>❌</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============ 2 ============ -->
+  <h2 id="s2"><span class="n">2</span>Research positioning</h2>
+  <h3>2.1 Field vs methodology — keep these separate</h3>
+  <ul>
+    <li><strong>Field:</strong> Learning Analytics → Educational Data Mining → <strong>Multimodal Learning Analytics (MMLA)</strong>. It becomes MMLA the moment camera data joins the behavioural logs.</li>
+    <li><strong>Methodology:</strong> <strong>Design Science Research (DSR)</strong> — build an artifact, then evaluate it.</li>
+  </ul>
+  <p>Examiners notice when a candidate confuses the two. The field is <em>what you contribute to</em>; the methodology is <em>how you did the work</em>.</p>
+
+  <h3>2.2 The gap</h3>
+  <p>The parental-involvement → performance link is <strong>already well established</strong>. Claiming to discover it would be a mistake examiners will catch. The defensible novelty is:</p>
+  <div class="callout novel"><span class="tag">The contribution</span>
+    <p><strong>Objective, camera-verified measurement of parental attention, instead of unreliable self-reports.</strong></p>
+    <p>Every existing attention study points the camera at the <em>student</em>. No existing work points it at the <strong>parent</strong>. That absence is the gap.</p>
+  </div>
+
+  <h3>2.3 Association, never causation</h3>
+  <p>The training data is simulated, so this demonstrates the <strong>method and pipeline</strong>, not a proven effect size. Always say "associated with", never "causes". The admin Insights page prints this on screen beside the correlation figure — a deliberate honesty guard.</p>
+
+  <h3>2.4 Ethical stance</h3>
+  <ul>
+    <li><strong>Privacy-first camera</strong> — video processed in-browser; only a number and a duration stored; no frame leaves the device.</li>
+    <li><strong>No self-fulfilling labels</strong> — the child never sees their own risk score.</li>
+    <li><strong>Support, not blame</strong> — supportive language in all parent-facing risk copy.</li>
+    <li><strong>Minors + webcam</strong> — real data collection would require formal ethics-committee review.</li>
+  </ul>
+
+  <!-- ============ 3 ============ -->
+  <h2 id="s3"><span class="n">3</span>System architecture</h2>
+  <p>A single-page React app talks to <strong>two backends</strong>. Supabase issues the JWT and stores files; FastAPI owns all business logic and every authorization decision.</p>
+<pre><code>┌──────────────── Browser (React SPA) ─────────────────┐
+│  Role-based UI · MediaPipe camera · Recharts          │
+└───────┬──────────────────────────────┬───────────────┘
+        │ Supabase JWT                  │ Supabase JWT
+        ▼                               ▼
+┌────────────────────┐      ┌──────────────────────────┐
+│ Supabase (hosted)  │      │  FastAPI backend         │
+│ • Auth (issues JWT)│      │ • All business logic     │
+│ • Storage (signed) │      │ • All role checks        │
+└─────────┬──────────┘      │ • ML predictor + PEI     │
+          │                 └────────────┬─────────────┘
+          │                              │ service-role key
+          ▼                              ▼ (bypasses RLS)
+     ┌────────────────────────────────────────┐
+     │   Supabase PostgreSQL — 18 tables      │
+     └────────────────────────────────────────┘</code></pre>
+  <p><strong>Request lifecycle:</strong> CORS → route match → auth dependency (verify JWT, load profile) → role guard → ownership guard → service-role query → optional service/ML call → JSON.</p>
+  <p><strong>Three backend tiers:</strong> routers (HTTP surface, guards) → services and ML (domain logic) → one DB accessor, <code>get_service_client()</code>.</p>
+
+  <!-- ============ 4 ============ -->
+  <h2 id="s4"><span class="n">4</span>The database</h2>
+  <p><strong>18 tables</strong>, 4 enum types, RLS enabled on all 18, 6 policies, 3 indexes, the <code>pgcrypto</code> extension, and 2 private storage buckets.</p>
+
+  <h3>4.1 The golden rule — know this cold</h3>
+  <div class="callout note"><span class="tag">RLS-vs-API</span>
+    <p>RLS is <strong>enabled on every table</strong>, so nothing is world-readable. But <strong>all authorization runs in FastAPI using the service-role key, which bypasses RLS entirely.</strong> Sensitive tables have RLS on and <strong>deliberately no policy</strong> — reachable only through the API, which applies its own role and ownership checks. A few harmless reads (own profile, own links, subjects, materials) have policies and go direct to Supabase.</p>
+  </div>
+  <p><strong>If asked "why not just use RLS for everything?"</strong> — RLS cannot express the rules this system needs: <em>"a parent may read this child only if a <code>parent_child_link</code> row exists, and only these columns, and only if the quiz is fully graded."</em> That logic belongs in application code where it is testable. Doing both would create two sources of truth that can silently disagree.</p>
+
+  <h3>4.2 The 18 tables</h3>
+  <table>
+    <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>profiles</code></td><td>Role + details layered on Supabase <code>auth.users</code> (PK = FK)</td></tr>
+      <tr><td><code>parent_child_link</code></td><td>Parent↔child bridge, <code>UNIQUE(parent_id, child_id)</code> — the linchpin of family-boundary auth</td></tr>
+      <tr><td><code>subjects</code></td><td>O/L subjects, with <code>is_core</code> marking core vs elective</td></tr>
+      <tr><td><code>child_subjects</code></td><td>Which optional subjects each student takes</td></tr>
+      <tr><td><code>learning_materials</code></td><td>Uploaded content → <code>materials</code> bucket</td></tr>
+      <tr><td><code>quizzes</code></td><td>Quiz metadata + optional <code>due_date</code></td></tr>
+      <tr><td><code>quiz_questions</code></td><td>Questions; options/answer key for MCQ auto-grading</td></tr>
+      <tr><td><code>quiz_attempts</code></td><td>Submissions: score, answers, <code>question_scores</code>, <code>graded</code></td></tr>
+      <tr><td><code>student_activity</code></td><td>Every learning event — <strong>the predictor's behavioural fuel</strong></td></tr>
+      <tr><td><code>monitoring_sessions</code></td><td>Parent sessions: duration, pages, <code>focus_losses</code>, <code>away_seconds</code></td></tr>
+      <tr><td><code>attention_scores</code></td><td>Camera output (0–1 + seconds). <strong>Numbers only, never video</strong></td></tr>
+      <tr><td><code>engagement_index</code></td><td>PEI output; also the predictor's parental-feature source</td></tr>
+      <tr><td><code>academic_records</code></td><td>Term assessment/exam scores + attendance %</td></tr>
+      <tr><td><code>predictions</code></td><td><code>risk_band</code>, <code>risk_score</code>, <code>top_factors</code> JSON</td></tr>
+      <tr><td><code>intervention_notes</code></td><td>Admin-only private staff case log</td></tr>
+      <tr><td><code>notifications</code></td><td>In-app parent notifications; <code>read_at</code> feeds engagement</td></tr>
+      <tr><td><code>report_cards</code></td><td>Admin PDF per student per term</td></tr>
+      <tr><td><code>messages</code></td><td>Created ahead of a future messaging feature — <strong>currently unused</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="callout good"><span class="tag">Verified</span><p>Every one of the <strong>17 tables the backend code actually queries</strong> exists in <code>schema.sql</code>. <code>messages</code> is the only unused one — see the hard questions for how to defend it.</p></div>
+  <p><strong>Enums:</strong> <code>user_role</code> (admin, parent, child) · <code>material_type</code> · <code>question_type</code> · <code>activity_action</code>. There is <strong>no teacher role</strong> — removed early and folded into admin.</p>
+
+  <!-- ============ 5 ============ -->
+  <h2 id="s5"><span class="n">5</span>The backend</h2>
+  <p>FastAPI — <strong>54 endpoints across 14 routers</strong>: parent 10, admin 7, quizzes 7, report_cards 6, students 6, materials 3, notifications 3, subjects 3, activity/engagement/predictions 2 each, analytics/health/profiles 1 each.</p>
+
+  <h3>5.1 Authentication</h3>
+  <p>The browser sends <code>Authorization: Bearer &lt;supabase-jwt&gt;</code>. The backend verifies it against Supabase's <strong>JWKS endpoint</strong> using <strong>asymmetric keys (ES256/RS256)</strong>, with <code>audience="authenticated"</code> and <code>leeway=10s</code> for clock skew.</p>
+  <div class="callout note"><span class="tag">Key design point</span><p><strong>The role is read from the <code>profiles</code> table, not from the JWT.</strong> The token proves <em>who you are</em>; the database is the source of truth for <em>what you may do</em>. Revoking a role therefore takes effect on the next request, not when the token expires.</p></div>
+
+  <h3>5.2 Authorization — two independent layers</h3>
+  <ol>
+    <li><strong>Role guard</strong> — <code>require_role("admin")</code> → 403 if the role doesn't match.</li>
+    <li><strong>Ownership guard</strong> — a parent endpoint additionally verifies a <code>parent_child_link</code> row for that exact child → 403 "Not linked to this child".</li>
+  </ol>
+  <p><strong>Role alone is never sufficient.</strong> Being a parent does not grant access to every child, only to linked ones.</p>
+
+  <h3>5.3 Per-student optional subjects</h3>
+  <p>O/L students take ~6 compulsory subjects plus their own electives. <code>subjects.is_core</code> marks core subjects (implicit for everyone); <code>child_subjects</code> records each student's electives. One resolver — <code>app/services/subject_access.py</code> — answers "which subject ids may this child see" as <strong>core ∪ assigned</strong>, and every child-reachable read calls it.</p>
+  <div class="callout warn"><span class="tag">Worth mentioning unprompted</span><p>Two endpoints had <strong>no subject check at all</strong> before this: <code>GET /materials/{id}/download</code> and <code>POST /quizzes/{id}/attempts</code>. The second matters most — an attempt on a subject the student doesn't take would pollute their score history <em>and</em> the predictor's features. Finding and closing that is a good thing to volunteer.</p></div>
+
+  <h3>5.4 Notification service</h3>
+  <p>Four event types — <code>quiz_result</code>, <code>quiz_due</code>, <code>report_card</code>, <code>risk_alert</code> — fanned out to all linked parents, created only by the backend. <code>quiz_due</code> reminders generate <strong>lazily on request</strong> with dedup, so no cron job is needed. <code>notify_safe</code> guarantees a notification failure never fails the underlying action. <strong>Reading a notification raises <code>check_frequency</code></strong> → raises the PEI — a feedback loop needing no retrain.</p>
+
+  <!-- ============ 6 ============ -->
+  <h2 id="s6"><span class="n">6</span>The machine-learning system</h2>
+  <div class="callout novel"><span class="tag">Core contribution</span><p>Sections 6–9 are the heart of the viva. Know them cold.</p></div>
+
+  <h3>6.1 Problem framing</h3>
+  <p><strong>Supervised multi-class classification.</strong> Input: 9 numeric features describing one student. Output: one of three risk bands — <code>low</code>, <code>medium</code>, <code>high</code>.</p>
+  <p>Framed as classification rather than regression <em>deliberately</em>: a teacher acts on "this student needs attention", not on "predicted score 61.4".</p>
+
+  <h3>6.2 The trained model</h3>
+  <table>
+    <tbody>
+      <tr><th>Algorithm</th><td><code>RandomForestClassifier</code> (scikit-learn)</td></tr>
+      <tr><th>Hyperparameters</th><td><code>n_estimators=300</code>, <code>max_depth=None</code>, <code>random_state=42</code></td></tr>
+      <tr><th>Pipeline</th><td>Single <code>clf</code> step — <strong>no scaler</strong> (trees are scale-invariant)</td></tr>
+      <tr><th>Split</th><td><strong>75 / 25, stratified</strong> on risk band, seed 42</td></tr>
+      <tr><th>Cross-validation</th><td><strong>5-fold, macro-F1</strong></td></tr>
+      <tr><th>Training rows</th><td><strong>1,680</strong> — 1,200 simulated + 480 real xAPI</td></tr>
+      <tr><th>Artifacts</th><td><code>predictor_v1.pkl</code> + <code>predictor_v1.meta.json</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.3 What a Random Forest is — explain it simply</h3>
+  <div class="callout note"><span class="tag">Say this if asked to explain the algorithm</span>
+    <p>"A decision tree asks a chain of yes/no questions — 'is attendance below 70%?', 'is the quiz average below 0.5?' — and lands on a prediction. A single tree overfits: it memorises its training data. A Random Forest trains 300 trees, each on a random bootstrap sample of rows, considering a random subset of features at each split. Every tree votes; the majority wins. The randomness makes individual trees' errors uncorrelated, so they cancel out — that's <strong>bagging</strong>, bootstrap aggregation. And because I can count how much each feature reduced impurity across all 300 trees, I get feature importances for free. That's what makes it explainable."</p>
+  </div>
+
+  <h3>6.4 The 9 features — frozen order</h3>
+  <p>The order is defined once in <code>app/ml/features.py</code>, shared by <strong>both training and serving</strong>, then frozen into the model's meta sidecar. Reordering requires a retrain.</p>
+  <table>
+    <thead><tr><th class="num">Pos</th><th>Feature</th><th>Meaning</th><th>Source</th><th class="num">Importance</th></tr></thead>
+    <tbody>
+      <tr class="win"><td class="num">6</td><td><code>prior_avg_score</code></td><td>Mean past assessment + exam scores</td><td><code>academic_records</code></td><td class="num">0.2176</td></tr>
+      <tr><td class="num">1</td><td><code>quiz_avg_pct</code></td><td>Mean quiz score ratio (0–1)</td><td><code>quiz_attempts</code></td><td class="num">0.1630</td></tr>
+      <tr><td class="num">5</td><td><code>attendance_pct</code></td><td>Attendance %</td><td><code>academic_records</code></td><td class="num">0.1292</td></tr>
+      <tr><td class="num">7</td><td><code>monitoring_hours</code> 👪</td><td>Parent monitoring hours</td><td><code>engagement_index</code></td><td class="num">0.0979</td></tr>
+      <tr><td class="num">2</td><td><code>quiz_count</code></td><td>Number of attempts</td><td><code>quiz_attempts</code></td><td class="num">0.0969</td></tr>
+      <tr><td class="num">4</td><td><code>avg_watch_percent</code></td><td>Mean video watch %</td><td><code>student_activity</code></td><td class="num">0.0889</td></tr>
+      <tr><td class="num">3</td><td><code>material_activity</code></td><td>Count of activity events</td><td><code>student_activity</code></td><td class="num">0.0810</td></tr>
+      <tr><td class="num">8</td><td><code>check_frequency</code> 👪</td><td>Parent check-ins</td><td><code>engagement_index</code></td><td class="num">0.0667</td></tr>
+      <tr><td class="num">9</td><td><code>parental_attention</code> 👪</td><td>Camera attention (0–1)</td><td><code>engagement_index</code></td><td class="num">0.0586</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good"><span class="tag">Your single best number</span><p><strong>The three parental features (👪) together carry 0.223 of total importance</strong> — marginally more than prior grades alone (0.2176), and the second-largest block. Unlike past grades, they're <em>actionable</em>: you can't change a student's history, but you can change how a parent engages this term. That figure <em>is</em> the thesis argument.</p></div>
+  <p><strong>Missing-data policy:</strong> missing signals default to <strong>0</strong> — a student with no data correctly reads as elevated risk. The one exception is <code>parental_attention</code>, which defaults to the neutral <strong>0.5 placeholder</strong> until the camera supplies a real value.</p>
+
+  <h3>6.5 Where the training data comes from</h3>
+  <p><strong>Why simulate?</strong> No public dataset holds this exact combination of features per O/L student — particularly not parental monitoring hours and camera-verified attention, which don't exist in <em>any</em> published dataset because nobody has collected them.</p>
+  <p><strong>What was done instead:</strong> public datasets were mined for their <em>documented relationships</em>, which were then reproduced in a simulated Sri Lankan O/L dataset in our schema.</p>
+  <ul>
+    <li><strong>xAPI-Edu-Data</strong> (480 rows) — primary grounding; carries real parental fields. Survey answered yes vs no shows a 1.32 / 0.66 split; absences under-7 vs over-7 shows 1.44 / 0.41.</li>
+    <li><strong>UCI Student Performance</strong> — family-context features.</li>
+    <li><strong>OULAD</strong> — large behavioural reference.</li>
+  </ul>
+  <p><strong>Procedure (seed 42):</strong> a latent "engaged household + able student" factor drives correlated features, so columns aren't independent noise. A weighted success score — prior grades 0.24, quiz average 0.20, attendance 0.15, parental ~0.30 combined — plus noise maps to a band: <strong>≥0.60 low, ≥0.42 medium, else high</strong>. Every row carries a <code>data_source</code> tag; 480 real xAPI rows are recast into the schema beside 1,200 simulated ones.</p>
+  <div class="callout warn"><span class="tag">Be honest about this</span><p>The model learns relationships that were partly designed in. It validates the <strong>pipeline</strong> — feature contract, training, serving, explanation — not a real-world effect size.</p></div>
+
+  <!-- ============ 7 ============ -->
+  <h2 id="s7"><span class="n">7</span>Model inventory — what runs where</h2>
+  <p>"How many models are there, and which part of the system uses which?" is the question most likely to expose a candidate who built something without understanding it. This section answers it exhaustively: every model, where its code lives, which endpoint calls it, which screen shows its output, and what it is for.</p>
+
+  <h3>7.1 The headline count</h3>
+  <div class="callout novel"><span class="tag">Say exactly this</span>
+    <p>"<strong>Five components, but only one model I trained.</strong> One trained model — the Random Forest risk predictor. Two more trained purely as benchmarks and deliberately not shipped. One pre-trained model used as-is for the camera. And one rule-based formula that is not machine learning at all. A sixth was scoped and dropped."</p>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Component</th><th>Category</th><th>Trained by us?</th><th>Runs where?</th><th>In production?</th></tr></thead>
+    <tbody>
+      <tr class="win"><td>1</td><td><strong>Performance-risk predictor</strong></td><td>Random Forest classifier</td><td><strong>✅ Yes — the one</strong></td><td>FastAPI server</td><td>✅</td></tr>
+      <tr><td>2</td><td>Logistic Regression</td><td>Linear classifier</td><td>Trained to benchmark</td><td>Offline script only</td><td>❌</td></tr>
+      <tr><td>3</td><td>Gradient Boosting</td><td>Boosted trees</td><td>Trained to benchmark</td><td>Offline script only</td><td>❌</td></tr>
+      <tr><td>4</td><td><strong>MediaPipe FaceLandmarker</strong></td><td>Pre-trained CNN</td><td><strong>❌ No — used as-is</strong></td><td><strong>Browser</strong></td><td>✅</td></tr>
+      <tr><td>5</td><td><strong>Parental Engagement Index</strong></td><td>Weighted formula</td><td><strong>N/A — not ML</strong></td><td>FastAPI server</td><td>✅</td></tr>
+      <tr><td>—</td><td>Attention-quality classifier</td><td>Would be ML</td><td>❌ Deliberately dropped</td><td>—</td><td>❌</td></tr>
+    </tbody>
+  </table>
+  <p>This matches the strategy set out in <code>Research_Positioning.md</code> before implementation began: <em>"1 trained (Random Forest/XGBoost predictor) + 1 pre-trained (MediaPipe, as-is) + 1 optional (attention-quality classifier). No fine-tuning in v1."</em> <strong>The optional third was not built</strong> — worth saying, because delivering the planned scope rather than over-reaching is a defensible engineering decision.</p>
+
+  <h3>7.2 Model 1 — the Random Forest risk predictor <span style="color:var(--green)">(the one we trained)</span></h3>
+  <table>
+    <tbody>
+      <tr><th style="width:180px">What it is</th><td><code>RandomForestClassifier</code>, 300 trees, scikit-learn</td></tr>
+      <tr><th>What it does</th><td>Takes 9 numeric features for one student → predicts <code>low</code> / <code>medium</code> / <code>high</code> risk, with a confidence and the top-4 contributing factors</td></tr>
+      <tr><th>Trained by</th><td><code>app/ml/train_predictor.py</code> — offline, run manually</td></tr>
+      <tr><th>Served by</th><td><code>app/ml/predictor.py</code> — <code>predict()</code> and <code>model_meta()</code>, loaded once and cached via <code>@lru_cache</code></td></tr>
+      <tr><th>Artifacts</th><td><code>app/ml/models/predictor_v1.pkl</code> + <code>predictor_v1.meta.json</code></td></tr>
+      <tr><th>Called from</th><td><code>app/routers/predictions.py</code> — <code>predictor.predict()</code> at lines 99 and 121, <code>predictor.model_meta()</code> at line 138</td></tr>
+      <tr><th>Endpoints</th><td><code>POST /predictions/run</code> (batch, admin) · <code>GET /predictions/{child_id}</code> (parent or admin)</td></tr>
+      <tr><th>Runs on</th><td>The <strong>server</strong>, CPU only. No GPU anywhere in this project.</td></tr>
+    </tbody>
+  </table>
+  <h4>Which screens show its output</h4>
+  <table>
+    <thead><tr><th>Portal</th><th>Screen</th><th>What the model produces there</th></tr></thead>
+    <tbody>
+      <tr><td>Admin</td><td><strong>Risk Predictions</strong> roster</td><td>Every student's band, sorted high → low; the <em>Run predictions</em> button batch-invokes it</td></tr>
+      <tr><td>Admin</td><td><strong>Risk Predictions</strong> → model health</td><td>Accuracy, F1 and feature importances read from the meta sidecar via <code>model_meta()</code></td></tr>
+      <tr><td>Admin</td><td><strong>Student Detail</strong> → Performance risk card</td><td>Band, confidence and the top-4 factors with values and direction</td></tr>
+      <tr><td>Parent</td><td><strong>Overview</strong> → PredictionCard</td><td>The same prediction in supportive language, plus a low/medium/high scale</td></tr>
+      <tr><td>Child</td><td><strong>Nowhere</strong></td><td><strong>Deliberate ethical choice</strong> — the child never sees a risk label</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Side effect worth knowing:</strong> when a batch run produces a <em>worse</em> band than the stored one, a <code>risk_alert</code> notification fires to every linked parent. That is the only place the model triggers an action rather than just displaying.</p>
+
+  <h3>7.3 Models 2 &amp; 3 — the benchmarks <span style="color:var(--muted)">(trained, never shipped)</span></h3>
+  <p>Logistic Regression and Gradient Boosting exist only inside <code>_candidates()</code> in <code>train_predictor.py</code>. Every training run fits all three on the identical split and evaluates them identically.</p>
+  <ul>
+    <li><strong>They never touch production.</strong> No router imports them; no <code>.pkl</code> is saved for them. Only the winner is serialised.</li>
+    <li><strong>Their results are permanently recorded</strong> in <code>predictor_v1.meta.json</code> under <code>all_model_metrics</code> — so the comparison is auditable long after the run, not just a number in a report.</li>
+    <li><strong>Logistic Regression alone gets a <code>StandardScaler</code></strong> in its pipeline, so a linear model competes fairly rather than being hobbled by unscaled features. The two tree models need no scaling.</li>
+  </ul>
+  <div class="callout note"><span class="tag">Why keep benchmarks at all?</span><p>Without them, "I chose Random Forest" is an assertion. With them, it is a measured decision with the losing numbers still on record — including the inconvenient fact that they were competitive. That is the difference between a claim and evidence.</p></div>
+
+  <h3>7.4 Model 4 — MediaPipe FaceLandmarker <span style="color:var(--violet)">(pre-trained, not ours)</span></h3>
+  <table>
+    <tbody>
+      <tr><th style="width:180px">What it is</th><td>Google's <code>FaceLandmarker</code> — a pre-trained deep model returning <strong>478 3-D face landmarks</strong></td></tr>
+      <tr><th>Package</th><td><code>@mediapipe/tasks-vision</code> <strong>0.10.35</strong></td></tr>
+      <tr><th>Model file</th><td><code>face_landmarker.task</code> (float16), fetched from Google's model host</td></tr>
+      <tr><th>WASM runtime</th><td>jsDelivr CDN, pinned to the same 0.10.35</td></tr>
+      <tr><th>Code</th><td><code>frontend/src/lib/attention/tracker.ts</code> — class <code>MediaPipeAttentionTracker</code></td></tr>
+      <tr><th>Runs on</th><td><strong>The parent's own device, inside the browser.</strong> Never on our server.</td></tr>
+      <tr><th>Used in</th><td>Parent portal only — the camera panel during a monitoring session</td></tr>
+      <tr><th>Modified by us?</th><td><strong>No.</strong> Not fine-tuned, not retrained, not modified. Used exactly as shipped.</td></tr>
+    </tbody>
+  </table>
+  <h4>The critical distinction — what is theirs and what is ours</h4>
+  <table>
+    <thead><tr><th>MediaPipe provides</th><th>We built on top</th></tr></thead>
+    <tbody>
+      <tr><td>478 landmark coordinates per frame</td><td>Iris-centring test from landmarks <strong>468 / 473</strong> against the eye corners</td></tr>
+      <tr><td>Nothing about attention</td><td>Head-yaw test from nose tip <strong>1</strong> against face edges <strong>234 / 454</strong></td></tr>
+      <tr><td>Nothing about liveness</td><td>Blink detection via eye-aspect-ratio, and the blink-or-motion liveness gate</td></tr>
+      <tr><td>Nothing about time</td><td>The accumulator: 1.5 s grace window, 500 ms frame-gap cap, tab-switch penalty</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good"><span class="tag">If asked "so what did you actually build?"</span><p>"MediaPipe solves face landmarking, which is a solved problem I'd be foolish to redo. It tells me where 478 points are and nothing more — it has no concept of attention. <strong>Every decision about what counts as attentive, how to debounce a blink, how to detect a photograph, and how to stop a stalled tab inflating the total is my logic.</strong> That's the contribution: the measurement instrument, not the face detector."</p></div>
+  <div class="callout warn"><span class="tag">Deployment caveat — know this before the demo</span><p>Both the WASM runtime and the <code>.task</code> model load from external CDNs on first use, so <strong>the camera feature needs internet access the first time it runs</strong> (afterwards the browser caches them). If your viva room has restricted networking, load the parent portal and start the camera once beforehand to warm the cache — or self-host the two assets. Everything else in the app works fully offline against a local backend.</p></div>
+
+  <h3>7.5 Component 5 — the PEI, and other things that are <em>not</em> models</h3>
+  <p>Being able to say confidently "that part is not machine learning" is as important as describing the model. Three parts of this system look algorithmic but contain no learning at all:</p>
+  <table>
+    <thead><tr><th>Component</th><th>What it really is</th><th>Where</th><th>Why not ML</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Parental Engagement Index</strong></td><td>Weighted sum of 3 normalised terms</td><td><code>app/ml/engagement.py</code> → <code>compute_pei()</code>; router <code>app/routers/engagement.py</code>; also used by <code>app/scripts/seed_demo.py</code></td><td>No ground-truth label for "true engagement" to learn from; a scored parent deserves an auditable reason; a learned scorer feeding a learned predictor would be circular</td></tr>
+      <tr><td><strong>Engagement-vs-performance correlation</strong></td><td>Pearson <em>r</em>, hand-implemented in <code>_pearson()</code></td><td><code>app/routers/analytics.py</code> → <code>GET /admin/analytics/engagement-performance</code></td><td>Descriptive statistics, not prediction. Powers the Insights scatter plot — and the on-screen "association, not causation" caveat</td></tr>
+      <tr><td><strong>MCQ auto-grading</strong></td><td>String comparison against the answer key</td><td><code>app/routers/quizzes.py</code></td><td>Exact matching. Short-answer questions are graded <em>by a human admin</em>, never by a model — no NLP anywhere in this project</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="tag">A trap worth pre-empting</span><p>If an examiner asks <em>"do you use NLP to grade the short answers?"</em> — <strong>no</strong>. Short answers are queued for an admin to mark manually, and the parent notification is deliberately withheld until grading completes so no misleading partial score is announced. Claiming an LLM or NLP model here would be inventing a component that does not exist.</p></div>
+
+  <h3>7.6 The master map — every feature and what powers it</h3>
+  <p>Read down this column and you can answer "which model does <em>this</em> screen use?" for anything in the product.</p>
+  <table>
+    <thead><tr><th>Feature / screen</th><th>Powered by</th><th>Trained by us?</th></tr></thead>
+    <tbody>
+      <tr><td>Admin → Risk roster &amp; "Run predictions"</td><td><strong>Random Forest</strong> <code>predictor_v1</code></td><td>✅</td></tr>
+      <tr><td>Admin → Model-health metrics</td><td>The RF's <strong>meta sidecar</strong> (all 3 models' scores)</td><td>✅</td></tr>
+      <tr><td>Admin → Student Detail risk card</td><td><strong>Random Forest</strong> + explanation logic</td><td>✅</td></tr>
+      <tr><td>Admin → Insights scatter + <em>r</em></td><td><strong>Pearson correlation</strong> — statistics, no model</td><td>—</td></tr>
+      <tr><td>Admin → Intervention notes, users, links</td><td>Plain CRUD — no model</td><td>—</td></tr>
+      <tr><td>Parent → PredictionCard</td><td><strong>Random Forest</strong></td><td>✅</td></tr>
+      <tr><td>Parent → LampGauge engagement score</td><td><strong>PEI formula</strong> — no model</td><td>—</td></tr>
+      <tr><td>Parent → Engagement trend chart</td><td><strong>PEI</strong> history rows</td><td>—</td></tr>
+      <tr><td>Parent → Camera attention panel</td><td><strong>MediaPipe</strong> + our gaze/liveness rules</td><td>❌ pre-trained</td></tr>
+      <tr><td>Parent → Attention history</td><td>Stored numbers from the camera panel</td><td>—</td></tr>
+      <tr><td>Parent → Notifications</td><td>Rule-based service — no model</td><td>—</td></tr>
+      <tr><td>Child → Learn, quizzes, progress</td><td>CRUD + MCQ string matching — no model</td><td>—</td></tr>
+      <tr><td>Child → Risk score</td><td><strong>Nothing — never shown, by design</strong></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.7 How the models connect to each other</h3>
+  <p>They are not independent — there is one deliberate chain, and it is worth being able to draw:</p>
+<pre><code>  MediaPipe (browser)  ──►  attentive_seconds / total_seconds
+                                      │  numbers only; no video leaves the device
+                                      ▼
+                            attention_scores table
+                                      │
+                       PEI formula ───┤ 0.4·hours + 0.3·checks + 0.3·attention
+                                      ▼
+                            engagement_index table
+                                      │  supplies features 7, 8 and 9
+                                      ▼
+                       Random Forest  ──►  risk band + confidence + factors
+                                      │
+                                      ▼
+                            risk_alert notification
+                                      │  parent reads it → check_frequency +1
+                                      └──────────────►  raises the next PEI</code></pre>
+  <div class="callout novel"><span class="tag">The one-sentence version</span><p>"The pre-trained model feeds the formula, the formula feeds the trained model, and the trained model's alert feeds back into the formula — so parental responsiveness influences the next prediction <strong>without any retraining</strong>."</p></div>
+  <p>That last loop is also the circularity noted in the hard questions — it passes through real parent behaviour, so it is not invalidating, but it does mean PEI and risk are not independent over time.</p>
+
+  <h3>7.8 Questions on the model inventory</h3>
+  <div class="qa"><p class="q">How many models does your system use?</p><p class="a">Five components, one of which I trained. The Random Forest risk predictor is my trained model. Logistic Regression and Gradient Boosting were trained only as benchmarks and are never served. MediaPipe's FaceLandmarker is pre-trained and used exactly as shipped, in the browser. The Parental Engagement Index is a weighted formula, not machine learning. A sixth — an attention-quality classifier — was scoped in my positioning document and deliberately dropped.</p></div>
+  <div class="qa"><p class="q">Which model powers the parent's engagement score?</p><p class="a">None — that's the PEI, a transparent weighted formula: 0.4 × normalised monitoring hours + 0.3 × normalised check frequency + 0.3 × attention. Deliberately not a model, because there's no ground truth for "true engagement" to train against, and a parent being scored deserves to see exactly why.</p></div>
+  <div class="qa"><p class="q">Which model runs in the browser and which on the server?</p><p class="a">MediaPipe runs entirely in the browser on the parent's own device — that's the privacy backbone, since no video ever reaches my server. The Random Forest runs server-side in FastAPI, loaded once from a pickle and cached. The PEI is also server-side. Nothing needs a GPU anywhere.</p></div>
+  <div class="qa"><p class="q">Did you fine-tune MediaPipe?</p><p class="a">No — not modified in any way. Fine-tuning would need labelled gaze data that doesn't exist for this task, plus a GPU and weeks of work, and it would gain nothing since MediaPipe's landmarking is already strong. What I built is the rule layer on top: what counts as attentive, blink debouncing, liveness, and the anti-gaming accumulator. MediaPipe gives me 478 coordinates and no concept of attention.</p></div>
+  <div class="qa"><p class="q">Do you use any NLP or a language model?</p><p class="a">No. MCQ answers are graded by exact string comparison against the key; short-answer questions are marked manually by an admin, and the parent notification is deliberately held back until grading completes so no misleading partial score goes out. There is no NLP, no LLM and no text model anywhere in this project.</p></div>
+  <div class="qa"><p class="q">Where do the three models' comparison numbers live?</p><p class="a">In <code>predictor_v1.meta.json</code>, under <code>all_model_metrics</code> — all three models' accuracy, precision, recall, macro-F1 and cross-validated F1 are written at training time and surfaced in the admin model-health view. The comparison stays auditable rather than existing only in a report.</p></div>
+  <div class="qa"><p class="q">Your positioning document mentions an optional attention-quality classifier. Why didn't you build it?</p><p class="a">It was flagged optional from the start, contingent on scope. It would have needed a proxy dataset like DAiSEE and added a second trained model without strengthening the core contribution — which is measuring <em>whether</em> a parent is attending, not classifying how well. Delivering the planned scope fully was the better engineering decision than half-delivering a wider one, and my positioning document said so before I started.</p></div>
+  <div class="qa"><p class="q">If MediaPipe loads from a CDN, does your camera work offline?</p><p class="a">Not on first use — the WASM runtime and the model file are fetched from external CDNs, then cached by the browser. Afterwards it works offline. For a guaranteed-offline deployment I'd self-host both assets, which is a build-config change rather than a code change. Everything else in the app runs fully offline against a local backend.</p></div>
+
+
+  <!-- ============ 8 ============ -->
+  <h2 id="s8"><span class="n">8</span>Datasets &amp; the full ML process</h2>
+  <p>This section traces the complete path from public data on disk to a saved model, naming <strong>exactly which dataset does which job</strong>. Every parameter below was read from <code>data_prep.py</code>, <code>generate_simulated.py</code> and <code>train_predictor.py</code>.</p>
+
+  <h3>7.1 What is on disk, and what each file is actually for</h3>
+  <p>Four dataset folders exist under <code>client01/datasets/</code>. <strong>They do not all play the same role — and one is not used at all.</strong></p>
+  <table>
+    <thead><tr><th>Dataset</th><th>Path</th><th>Rows</th><th>Used for</th><th>Enters training data?</th></tr></thead>
+    <tbody>
+      <tr class="win"><td><strong>xAPI-Edu-Data</strong></td><td><code>datasets/archive/xAPI-Edu-Data.csv</code></td><td class="num">480</td><td><strong>Two jobs:</strong> (a) evidence mining, (b) recast into our schema as real training rows</td><td>✅ <strong>Yes — all 480</strong></td></tr>
+      <tr><td><strong>UCI Student Performance</strong></td><td><code>datasets/student+performance/student.zip</code> → <code>student-mat.csv</code></td><td class="num">395</td><td><strong>Evidence mining only</strong> — correlations that justify the simulation weights</td><td>❌ No</td></tr>
+      <tr><td><strong>OULAD</strong></td><td><code>datasets/open+university+learning+analytics+dataset/</code> (7 CSVs)</td><td class="num">large</td><td><strong>Downloaded as background reference; not read by any code</strong></td><td>❌ No</td></tr>
+      <tr><td><strong>Generated training set</strong></td><td><code>datasets/generated/training_data.csv</code></td><td class="num">1,680</td><td><strong>The only file the trainer reads</strong></td><td>✅ It <em>is</em> the training data</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><span class="tag">Be straight about OULAD</span>
+    <p>The OULAD folder is present and earlier documents list it as a "behavioural reference". <strong>No code path loads it</strong> — <code>data_prep.py</code> imports only the xAPI CSV and the UCI zip. If asked, say so plainly: <em>"I obtained OULAD as background reading on behavioural-log modelling, but it isn't in my pipeline — only xAPI and UCI are, and only xAPI contributes rows."</em> Claiming otherwise is the kind of thing an examiner can check in thirty seconds.</p>
+  </div>
+
+  <h3>7.2 The pipeline end to end</h3>
+  <p>Three scripts, run in order. Only the third produces the shipped artifact.</p>
+<pre><code>  ┌─ datasets/archive/xAPI-Edu-Data.csv        (480 real rows)
+  └─ datasets/student+performance/student.zip  (395 real rows, UCI Math)
+                    │
+     ① data_prep.study_relationships()   ── mines correlations, PRINTS evidence
+                    │                        (no data output — justifies weights)
+                    ▼
+     ② generate_simulated.build_training_set()
+          ├─ generate(n=1200, seed=42)      → 1,200 rows  data_source='simulated_sl'
+          └─ data_prep.recast_xapi()        →   480 rows  data_source='xapi'
+                    │  pd.concat
+                    ▼
+          datasets/generated/training_data.csv   1,680 rows × 9 features + label
+                    │
+     ③ train_predictor.train()
+          ├─ 75/25 stratified split (seed 42)
+          ├─ fit 3 candidates + 5-fold CV
+          └─ save winner → predictor_v1.pkl + predictor_v1.meta.json</code></pre>
+  <p>Run them with:</p>
+<pre><code>python -m app.ml.data_prep           # ① print the evidence summary
+python -m app.ml.generate_simulated  # ② rebuild training_data.csv
+python -m app.ml.train_predictor     # ③ train, benchmark, save
+</code></pre>
+  <p>Step ③ calls step ② automatically if <code>training_data.csv</code> is missing, so a clean checkout can train in one command.</p>
+
+  <h3>7.3 Step ① — evidence mining (why the simulation is not invented)</h3>
+  <p>This is the step that makes the simulation defensible. <code>study_relationships()</code> reads both real datasets and extracts the relationships the simulator then reproduces. <strong>It outputs no data</strong> — it produces the printed evidence that justifies the weights.</p>
+
+  <h4>From UCI Student Performance — correlation with final grade G3</h4>
+  <p>Computed against <code>G3</code> (final grade, 0–20 scale) over 395 students:</p>
+  <table>
+    <thead><tr><th>Relationship studied</th><th>Column(s)</th><th>Direction expected</th></tr></thead>
+    <tbody>
+      <tr><td>Family support</td><td><code>famsup</code> → binary</td><td>Higher grade</td></tr>
+      <tr><td>Study time</td><td><code>studytime</code></td><td>Higher grade</td></tr>
+      <tr><td>Parent education</td><td>mean of <code>Medu</code>, <code>Fedu</code> (0–4)</td><td>Higher grade</td></tr>
+      <tr><td>Absences</td><td><code>absences</code></td><td>Lower grade</td></tr>
+      <tr><td>Past failures</td><td><code>failures</code></td><td>Lower grade</td></tr>
+    </tbody>
+  </table>
+
+  <h4>From xAPI-Edu-Data — outcome by parental behaviour</h4>
+  <p>The <code>Class</code> label (L/M/H) is ranked 0/1/2 and averaged within groups:</p>
+  <table>
+    <thead><tr><th>Grouping</th><th>Mean outcome rank (0 = L, 2 = H)</th></tr></thead>
+    <tbody>
+      <tr><td>Parent answered survey — <strong>Yes</strong></td><td class="num">1.32</td></tr>
+      <tr><td>Parent answered survey — <strong>No</strong></td><td class="num">0.66</td></tr>
+      <tr><td>Absence days — <strong>Under-7</strong></td><td class="num">1.44</td></tr>
+      <tr><td>Absence days — <strong>Above-7</strong></td><td class="num">0.41</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good"><span class="tag">The number to quote</span><p>Students whose parent answered the school survey average <strong>1.32</strong> on the outcome rank versus <strong>0.66</strong> for those whose parent did not — <strong>double</strong>. That single contrast, from real data, is the empirical anchor for treating parental involvement as a substantial feature. Correlations with <code>raisedhands</code> and <code>VisITedResources</code> are also computed as engagement references.</p></div>
+
+  <h3>7.4 Step ② part A — the simulator (1,200 rows)</h3>
+  <p><code>generate(n=1200, seed=42)</code>. The design goal is data whose <em>internal correlation structure</em> is realistic, not nine independent random columns.</p>
+
+  <h4>The latent factor — why the columns correlate</h4>
+  <p>Each simulated child gets one hidden value:</p>
+<pre><code>latent ~ Beta(2.2, 2.2)      # centred on 0.5, bounded 0..1, few extremes</code></pre>
+  <p>This represents <em>"engaged household + able student"</em>. Every feature is then drawn as a function of that same latent plus its own Gaussian noise, so an attentive parent naturally co-occurs with steady attendance and better quiz scores — exactly as in real data. Beta(2.2, 2.2) is chosen over a uniform draw because real populations cluster around the middle rather than spreading evenly to both extremes.</p>
+
+  <h4>Every feature's generating equation</h4>
+  <table>
+    <thead><tr><th>Feature</th><th>Equation</th><th>Clipped to</th></tr></thead>
+    <tbody>
+      <tr><td><code>quiz_avg_pct</code></td><td>0.35 + 0.50·latent + 𝒩(0, 0.12)</td><td>0.05 – 1.0</td></tr>
+      <tr><td><code>quiz_count</code></td><td>round(2 + 12·latent + 𝒩(0, 2))</td><td>0 – 20</td></tr>
+      <tr><td><code>material_activity</code></td><td>round(5 + 30·latent + 𝒩(0, 6))</td><td>0 – 80</td></tr>
+      <tr><td><code>avg_watch_percent</code></td><td>30 + 55·latent + 𝒩(0, 12)</td><td>0 – 100</td></tr>
+      <tr><td><code>attendance_pct</code></td><td>60 + 38·latent + 𝒩(0, 8)</td><td>40 – 100</td></tr>
+      <tr><td><code>prior_avg_score</code></td><td>35 + 55·latent + 𝒩(0, 10)</td><td>0 – 100</td></tr>
+      <tr><td><code>monitoring_hours</code></td><td>0.5 + 8·latent + 𝒩(0, 1.5)</td><td>0 – 12</td></tr>
+      <tr><td><code>check_frequency</code></td><td>round(1 + 20·latent + 𝒩(0, 4))</td><td>0 – 30</td></tr>
+      <tr><td><code>parental_attention</code></td><td>0.5 + <strong>0.35·(latent − 0.5)</strong> + 𝒩(0, 0.08)</td><td>0 – 1</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="tag">Note the last row — it matters later</span><p><code>parental_attention</code> is the only feature centred on a constant and given a <strong>deliberately compressed spread</strong>. Its coefficient is 0.35 on <em>(latent − 0.5)</em>, so it ranges roughly <strong>0.325–0.675</strong> before noise, while e.g. <code>prior_avg_score</code> spans <strong>35–90</strong>. This is intentional — the camera signal doesn't exist yet, so the simulation lets it vary only slightly around the 0.5 placeholder rather than pretending to know its true distribution. Section 7.7 explains the consequence.</p></div>
+
+  <h4>The label — how a risk band is assigned</h4>
+  <p>Each feature is normalised to 0–1 using a per-feature range, multiplied by a weight, summed, and given label noise:</p>
+<pre><code>score = Σ  weight[f] × norm(f)        for the 9 features
+score = score + 𝒩(0, 0.07)           # label noise — stops the task being trivial
+score = clip(score, 0, 1)
+
+band  = "low"     if score >= 0.60
+        "medium"  if score >= 0.42
+        "high"    otherwise</code></pre>
+  <table>
+    <thead><tr><th>Feature</th><th class="num">Success weight</th><th>Normalisation range</th></tr></thead>
+    <tbody>
+      <tr class="win"><td><code>prior_avg_score</code></td><td class="num">0.24</td><td>0 – 100</td></tr>
+      <tr><td><code>quiz_avg_pct</code></td><td class="num">0.20</td><td>0 – 1</td></tr>
+      <tr><td><code>attendance_pct</code></td><td class="num">0.15</td><td><strong>40 – 100</strong></td></tr>
+      <tr><td><code>monitoring_hours</code> 👪</td><td class="num">0.12</td><td><strong>0 – 10</strong></td></tr>
+      <tr><td><code>parental_attention</code> 👪</td><td class="num">0.10</td><td>0 – 1</td></tr>
+      <tr><td><code>check_frequency</code> 👪</td><td class="num">0.08</td><td><strong>0 – 25</strong></td></tr>
+      <tr><td><code>avg_watch_percent</code></td><td class="num">0.05</td><td>0 – 100</td></tr>
+      <tr><td><code>quiz_count</code></td><td class="num">0.03</td><td>0 – 15</td></tr>
+      <tr><td><code>material_activity</code></td><td class="num">0.03</td><td>0 – 40</td></tr>
+      <tr><td colspan="2" class="num"><strong>Total = 1.00 · parental block = 0.30</strong></td><td></td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="tag">Two details worth knowing</span>
+    <p><strong>The bolded ranges are load-bearing.</strong> <code>monitoring_hours</code> normalises over 0–10 and <code>check_frequency</code> over 0–25 — <em>the same caps the live PEI uses</em> (section 10). That is what makes a runtime PEI comparable to the features the model trained on. Change one without the other and serving silently drifts from training.</p>
+    <p><strong>Attendance normalises from 40, not 0.</strong> Nobody attends 0% of school, so normalising from 40 spreads the realistic range across the full 0–1 rather than compressing everyone into the top half.</p>
+  </div>
+  <div class="callout warn"><span class="tag">The honest framing</span><p>The parental block is assigned <strong>0.30 of the success score by design</strong>, echoing the direction and rough magnitude found in step ①. The model then recovers roughly that structure. <strong>This is the circularity you must acknowledge:</strong> on simulated rows the model partly re-learns what was encoded. That is why the claim is "validated pipeline", not "demonstrated effect size" — and why the 480 real xAPI rows matter, since those labels were never generated by this formula.</p></div>
+
+  <h3>7.5 Step ② part B — recasting real xAPI rows (480 rows)</h3>
+  <p><code>recast_xapi()</code> maps genuine xAPI records into our 9-feature schema so the training set contains real data alongside simulated data. The exact mapping:</p>
+  <table>
+    <thead><tr><th>Our feature</th><th>Derived from xAPI</th></tr></thead>
+    <tbody>
+      <tr><td><code>quiz_avg_pct</code></td><td><code>clip((raisedhands + VisITedResources) / 200, 0, 1)</code></td></tr>
+      <tr><td><code>quiz_count</code></td><td><code>round(VisITedResources / 12)</code>, clipped 0–20</td></tr>
+      <tr><td><code>material_activity</code></td><td><code>(VisITedResources + AnnouncementsView + Discussion) / 3</code></td></tr>
+      <tr><td><code>avg_watch_percent</code></td><td><code>VisITedResources</code>, clipped 0–100</td></tr>
+      <tr><td><code>attendance_pct</code></td><td><code>StudentAbsenceDays</code>: Under-7 → <strong>95.0</strong>, Above-7 → <strong>72.0</strong>, else 85.0</td></tr>
+      <tr><td><code>prior_avg_score</code></td><td><code>clip(40 + raisedhands × 0.4, 0, 100)</code></td></tr>
+      <tr><td><code>monitoring_hours</code> 👪</td><td><code>(ParentAnsweringSurvey == Yes) × 4 + 1</code></td></tr>
+      <tr><td><code>check_frequency</code> 👪</td><td><code>(ParentschoolSatisfaction == Good) × 10 + (survey Yes) × 4 + 2</code></td></tr>
+      <tr><td><code>parental_attention</code> 👪</td><td><strong>0.5 — constant</strong> (no camera exists in public data)</td></tr>
+      <tr><td><strong><code>risk_band</code></strong> (label)</td><td><code>Class</code>: <strong>L → high, M → medium, H → low</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="callout good"><span class="tag">The design guard that prevents label leakage</span>
+    <p>Every <em>feature</em> is derived only from <strong>behavioural</strong> columns (<code>raisedhands</code>, <code>VisITedResources</code>, <code>Discussion</code>, absence, parental flags). The <em>label</em> comes only from <code>Class</code>, which is never used to build any feature. <strong>The outcome therefore cannot leak into the inputs.</strong> Volunteer this if asked how you avoided leakage — it's a deliberate choice, stated in the function's own docstring.</p>
+  </div>
+  <p><strong>Acknowledge the proxies.</strong> xAPI has no numeric parental-time column, so <code>monitoring_hours</code> and <code>check_frequency</code> are coarse proxies built from two categorical flags — meaning those 480 rows carry only <strong>3 distinct monitoring values</strong> between them. It demonstrates the recast pipeline honestly; it is not a precise measurement.</p>
+
+  <h3>7.6 The resulting training set</h3>
+  <p><strong>1,680 rows</strong> written to <code>datasets/generated/training_data.csv</code>, every row tagged with its <code>data_source</code> so provenance is auditable:</p>
+  <table>
+    <thead><tr><th>Source</th><th class="num">low</th><th class="num">medium</th><th class="num">high</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td><code>simulated_sl</code></td><td class="num">493</td><td class="num">495</td><td class="num">212</td><td class="num">1,200</td></tr>
+      <tr><td><code>xapi</code> (real)</td><td class="num">142</td><td class="num">211</td><td class="num">127</td><td class="num">480</td></tr>
+      <tr class="win"><td><strong>Total</strong></td><td class="num"><strong>635</strong></td><td class="num"><strong>706</strong></td><td class="num"><strong>339</strong></td><td class="num"><strong>1,680</strong></td></tr>
+    </tbody>
+  </table>
+  <p><strong>The class imbalance is real and worth pre-empting.</strong> "high" is the smallest class at 339 rows (20.2%) versus medium at 42.0%. Two consequences you should state before being asked:</p>
+  <ul>
+    <li>It is why the split is <strong>stratified</strong> — a plain random split could leave too few high-risk rows to evaluate.</li>
+    <li>It is why <strong>macro-F1</strong> is the headline metric rather than accuracy — macro-F1 weights the 339-row class equally with the 706-row one, so failing on high risk is fully penalised.</li>
+    <li>No resampling (SMOTE, class weights) was applied. At roughly 2:1 the imbalance is mild, and stratification plus macro-F1 handle it. On a real cohort with a rarer high-risk class, class weighting would be the first thing to add.</li>
+  </ul>
+
+  <h3>7.7 Why <code>parental_attention</code> ends up least important — the real reason</h3>
+  <div class="callout warn"><span class="tag">Correcting a common mis-statement</span>
+    <p>It is often said that this feature is unimportant "because it was constant". <strong>That is only half true, and an examiner who reads the generator will catch it.</strong> In the 1,200 simulated rows it <em>does</em> vary. It is constant at 0.5 only in the 480 recast xAPI rows.</p>
+  </div>
+  <p>The accurate explanation has three parts, and it is stronger than the simple version:</p>
+  <ol>
+    <li><strong>Compressed variance by design.</strong> In simulation it spans only ~0.325–0.675, while <code>prior_avg_score</code> spans 35–90. Trees split on thresholds, so a feature with a narrow range offers fewer discriminating cut-points and yields less impurity reduction — regardless of its true relationship to the outcome.</li>
+    <li><strong>Constant across 28.6% of the data.</strong> All 480 xAPI rows carry exactly 0.5, so for more than a quarter of the training set the column provides zero information.</li>
+    <li><strong>Correlated with stronger features.</strong> It is drawn from the same latent factor as everything else. When features are correlated, tree ensembles distribute importance toward whichever one splits most cleanly — here <code>prior_avg_score</code>, with far more spread. The information is present but attributed elsewhere. This is well-known importance dilution under correlated inputs, not evidence of irrelevance.</li>
+  </ol>
+  <div class="callout good"><span class="tag">The defensible conclusion</span><p>Its assigned weight in the label formula is <strong>0.10 — fifth of nine, ahead of three other features</strong> — yet its measured importance is last at 0.0586. That gap between designed weight and recovered importance <em>is itself the finding</em>: with a low-variance, partly-constant proxy, the signal cannot be recovered. It is precisely the argument for collecting real camera data, where the variance would be genuine. Reporting 0.0586 as evidence the camera doesn't matter would be a misreading of your own experiment.</p></div>
+
+  <h3>7.8 Reproducibility</h3>
+  <p>Every stochastic step is seeded, so the entire pipeline is deterministic end to end:</p>
+  <table>
+    <thead><tr><th>Stage</th><th>Seed</th><th>What it fixes</th></tr></thead>
+    <tbody>
+      <tr><td>Simulation</td><td><code>SEED = 42</code></td><td>The latent draw and all feature noise</td></tr>
+      <tr><td>Train/test split</td><td><code>random_state=42</code></td><td>Which rows land in the 25% test set</td></tr>
+      <tr><td>Random Forest</td><td><code>random_state=42</code></td><td>Bootstrap sampling and per-split feature subsampling</td></tr>
+      <tr><td>Both benchmarks</td><td><code>random_state=42</code></td><td>Same, for a fair comparison</td></tr>
+    </tbody>
+  </table>
+  <p>Delete <code>training_data.csv</code>, rerun all three scripts on any machine, and you get byte-identical data and the same reported metrics. <strong>Offer to demonstrate this live</strong> — it takes seconds and it is strong evidence of methodological rigour.</p>
+
+  <h3>7.9 Which dataset supports which claim — the summary table</h3>
+  <p>If you memorise one table from this section, make it this one.</p>
+  <table>
+    <thead><tr><th>Claim you make</th><th>Evidence it rests on</th></tr></thead>
+    <tbody>
+      <tr><td>"Parental involvement is associated with performance"</td><td><strong>xAPI</strong> (1.32 vs 0.66 by survey participation) and <strong>UCI</strong> (famsup, parent education correlations with G3) — <em>real data, both</em></td></tr>
+      <tr><td>"Attendance is associated with performance"</td><td><strong>xAPI</strong> (1.44 vs 0.41 by absence band) and <strong>UCI</strong> (absences vs G3) — <em>real data</em></td></tr>
+      <tr><td>"My simulation weights aren't arbitrary"</td><td>Directions and rough magnitudes taken from those two real datasets in step ①</td></tr>
+      <tr><td>"My pipeline works on real data, not only synthetic"</td><td>480 recast <strong>xAPI</strong> rows in the training set, labels from real <code>Class</code> outcomes</td></tr>
+      <tr><td>"The model achieves macro-F1 0.7521"</td><td>The <strong>combined 1,680-row set</strong> — 71% simulated, so a pipeline result, not an effect size</td></tr>
+      <tr><td>"Camera-verified attention predicts outcomes"</td><td><strong>No evidence yet — do not claim this.</strong> No dataset contains it. This project builds the instrument; validating it needs a real cohort.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.10 Questions on the data</h3>
+  <div class="qa"><p class="q">Which datasets did you actually use, and for what?</p><p class="a">Two real ones. xAPI-Edu-Data does two jobs: I mine it for the parental-involvement and absence relationships, and I recast all 480 rows into my feature schema as real training data. UCI Student Performance is used only for evidence — correlations between family support, parent education, absences and the final grade — to justify my simulation weights; none of its rows enter training. OULAD is in the repo as background reading but no code loads it. The trainer itself reads exactly one file: the generated 1,680-row CSV.</p></div>
+  <div class="qa"><p class="q">Why not just train directly on xAPI or UCI?</p><p class="a">Neither holds my feature schema. I need per-student parental monitoring hours, check frequency and camera attention alongside quiz and activity data — no public dataset has that combination, because camera-verified parental attention has never been collected. xAPI has coarse parental flags but no numeric time; UCI has family context but no behavioural logs. So I mine both for relationships and reproduce those in my own schema, while still recasting the 480 xAPI rows so real data is present.</p></div>
+  <div class="qa"><p class="q">How do you know your simulation is realistic?</p><p class="a">Three ways. The directions and rough magnitudes come from measured correlations in real data, not intuition. A single latent factor drives all features, so their inter-correlations resemble reality rather than being independent noise. And Gaussian label noise means the boundary isn't cleanly separable — if it were, accuracy would be near 100% instead of 74.5%. That said, "realistic structure" is not "real", which is why every claim is framed as pipeline validation.</p></div>
+  <div class="qa"><p class="q">Isn't it circular to generate labels from a weighted formula and then have a model learn those weights?</p><p class="a">On the simulated rows, yes, partly — and I state it rather than hide it. Three things mitigate it. Label noise of 𝒩(0, 0.07) means the mapping isn't deterministic. The weights are taken from real measured relationships, so the structure isn't invented. And 480 rows — 28.6% — come from real xAPI outcomes that my formula never touched. The honest claim is that this validates the pipeline end to end; proving an effect size needs a real cohort.</p></div>
+  <div class="qa"><p class="q">How did you avoid data leakage in the xAPI recast?</p><p class="a">By construction. Every feature is derived only from behavioural columns — raised hands, visited resources, discussion, absence band, parental flags. The label comes solely from the <code>Class</code> column, which is never used to build any feature. So the outcome cannot leak into the inputs, and it's stated in the function's docstring as a deliberate guard.</p></div>
+  <div class="qa"><p class="q">Your classes are imbalanced — 706 medium against 339 high. Why no SMOTE or class weighting?</p><p class="a">At roughly 2:1 the imbalance is mild, and two choices already address it: the split is stratified so every class is properly represented in both train and test, and macro-F1 is the headline metric, weighting the 339-row class equally with the 706-row one. Resampling adds synthetic rows to data that is already partly synthetic, which would weaken the argument rather than strengthen it. On a real cohort with a rarer high-risk class, class weighting would be my first addition.</p></div>
+  <div class="qa"><p class="q">Why is <code>parental_attention</code> constant in the xAPI rows?</p><p class="a">Because no public dataset contains camera-verified parental attention — it's the signal my project exists to create. For those 480 real rows I use the neutral 0.5 placeholder, the same value production uses when a parent has no webcam. In the simulated rows it does vary, though over a deliberately narrow range. That combination is the main reason it ends up the least-important feature, and I'm careful not to read that as evidence about the real signal.</p></div>
+  <div class="qa"><p class="q">Can you reproduce your results?</p><p class="a">Yes, exactly. Every stochastic step is seeded with 42 — the simulation's latent draw and noise, the train/test split, and the bootstrap sampling in all three models. Delete the generated CSV, rerun the three scripts on any machine, and you get identical data and identical metrics. I can demonstrate it in about ten seconds.</p></div>
+
+
+  <!-- ============ 8 ============ -->
+  <h2 id="s9"><span class="n">9</span>Why this model — and why not the others</h2>
+  <p>This section exists because "why did you choose X?" is the single most likely follow-up on <em>every</em> technical decision. Each subsection gives the rejected option and the reason.</p>
+
+  <h3>7.1 The measured comparison — the numbers first</h3>
+  <p>All three candidates were trained and evaluated in the same script, on the same split, with the same seed. The real results:</p>
+  <table>
+    <thead><tr><th>Model</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1 (macro)</th><th class="num">CV F1 mean ± std</th></tr></thead>
+    <tbody>
+      <tr class="win"><td><strong>Random Forest</strong> ✅ shipped</td><td class="num">0.7452</td><td class="num">0.7705</td><td class="num">0.7394</td><td class="num">0.7521</td><td class="num">0.7281 ± 0.037</td></tr>
+      <tr><td>Gradient Boosting</td><td class="num"><strong>0.7476</strong></td><td class="num">0.7655</td><td class="num"><strong>0.7451</strong></td><td class="num"><strong>0.7540</strong></td><td class="num">0.7214 ± 0.0427</td></tr>
+      <tr><td>Logistic Regression</td><td class="num">0.7333</td><td class="num">0.7549</td><td class="num">0.7299</td><td class="num">0.7404</td><td class="num"><strong>0.7504 ± 0.0211</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><span class="tag">Read this carefully — an examiner will</span>
+    <p><strong>Random Forest did not win outright.</strong> Gradient Boosting has the best held-out accuracy and macro-F1. Logistic Regression has the best cross-validated F1 <em>and</em> the tightest standard deviation (0.021 vs 0.037), making it the most stable. All three sit within <strong>1.4 percentage points</strong>.</p>
+    <p>Random Forest was chosen for <strong>explainability, not dominance</strong>. The training script encodes exactly that: <code>winner</code> is hardcoded to <code>random_forest</code> and only prints a note if a challenger beats it on CV F1 by <strong>more than 0.03</strong>. The Logistic Regression gap is 0.0223 — under threshold, so RF stays.</p>
+    <p><strong>Own this rather than hiding it:</strong> "The three models are statistically indistinguishable on this data, so I selected on the criterion that serves the research question — the feature importances <em>are</em> my parental-factor argument."</p>
+  </div>
+
+  <h3>7.2 Why not Logistic Regression?</h3>
+  <p>It has the best cross-validated F1, so this needs a real answer, not a dismissal. Three reasons:</p>
+  <ol>
+    <li><strong>It assumes a linear decision boundary in log-odds.</strong> The relationships here are plausibly non-linear and interacting — attendance may only matter <em>below</em> a threshold, and parental monitoring may only help when the student is already engaging. A linear model can only capture that if you hand-engineer the interaction terms; a tree finds them automatically.</li>
+    <li><strong>Its "explainability" is a different, weaker kind here.</strong> Coefficients are interpretable only relative to scaled units, and with correlated features (monitoring hours and check frequency move together) individual coefficients become unstable and can even flip sign. Impurity importances degrade more gracefully.</li>
+    <li><strong>The CV advantage is inside the noise.</strong> 0.7504 vs 0.7281 is 0.0223, against a standard deviation of 0.037 — well within one standard deviation, so it is not a reliable ranking.</li>
+  </ol>
+
+  <h3>7.3 Why not Gradient Boosting?</h3>
+  <p>It edges RF on test macro-F1 (0.7540 vs 0.7521 — a gap of 0.0019, roughly one test row). Reasons it wasn't shipped:</p>
+  <ol>
+    <li><strong>The gap is meaningless.</strong> 0.0019 on a 420-row test set is well under one sample's worth of difference.</li>
+    <li><strong>It is the <em>least</em> stable of the three</strong> — CV std 0.0427, the highest. Boosting fits sequentially to residuals, so it's more sensitive to noise, which matters when the data is partly simulated.</li>
+    <li><strong>Boosted importances are harder to defend.</strong> Sequential fitting means later trees correct earlier ones, so importance is spread across correlated features in a way that's less intuitive to explain to a non-technical parent or examiner.</li>
+  </ol>
+
+  <h3>7.4 Why not deep learning / a neural network?</h3>
+  <ol>
+    <li><strong>Tabular data of this size.</strong> 1,680 rows and 9 features. Neural networks need far more data to beat tree ensembles on tabular problems, and the literature is consistent on this. A network here would overfit badly.</li>
+    <li><strong>Explainability is the entire point.</strong> The feature importances <em>are</em> the parental-factor argument. A black box would defeat the research purpose — I'd have a prediction but no thesis.</li>
+    <li><strong>No structural prior to exploit.</strong> Deep learning wins where there's structure to learn — pixels, sequences, language. Nine independent tabular columns have none.</li>
+  </ol>
+
+  <h3>7.5 Why not XGBoost / LightGBM / CatBoost?</h3>
+  <p>Fair question, since the positioning doc mentions XGBoost as an option. Answer: scikit-learn's <code>GradientBoostingClassifier</code> <em>is</em> the same family and was benchmarked — it didn't meaningfully win. Adding XGBoost would introduce a heavier dependency to chase a difference smaller than the noise floor. If the dataset were 100× larger, XGBoost would be the first thing to try.</p>
+
+  <h3>7.6 Why not SVM, k-NN, or Naive Bayes?</h3>
+  <table>
+    <thead><tr><th>Rejected</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SVM</strong></td><td>No native feature importance, no calibrated probabilities without extra fitting (Platt scaling), and slow to tune. Loses on the one criterion that matters here.</td></tr>
+      <tr><td><strong>k-NN</strong></td><td>No model to inspect, no importances, and it needs scaling plus a distance metric over mixed-range features. Predictions can't be explained beyond "similar students did this".</td></tr>
+      <tr><td><strong>Naive Bayes</strong></td><td>Assumes conditional independence between features — flatly violated here, since monitoring hours, check frequency and attention are strongly correlated by construction.</td></tr>
+      <tr><td><strong>Single Decision Tree</strong></td><td>Maximally explainable but high-variance; it would overfit 1,680 rows and change structure with any resample. The forest keeps the explainability and removes the variance.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.7 Why classification and not regression?</h3>
+  <p>A regressor predicting a numeric score would need a defensible continuous target, and the intervention is categorical anyway — staff triage students into "watch this one" buckets. Three ordered bands match how the output is actually used, and they make the confidence figure meaningful (<code>predict_proba</code> per band). The cost of being wrong is also asymmetric: missing a high-risk student matters more than misjudging a low-risk one, which macro-F1 captures and RMSE would not.</p>
+
+  <h3>7.8 Why not unsupervised / clustering?</h3>
+  <p>Clustering would find groups but attach no meaning to them, and there'd be nothing to validate against — no accuracy, no F1, no defensible claim that a cluster <em>is</em> "at risk". The whole point is a labelled, evaluable risk prediction.</p>
+
+  <h3>7.9 Why MediaPipe pre-trained, rather than training a gaze model?</h3>
+  <ol>
+    <li><strong>No dataset exists.</strong> There is no labelled parent-attention corpus to train on.</li>
+    <li><strong>Cost.</strong> Fine-tuning needs labelled gaze data, a GPU, and weeks unavailable in this scope.</li>
+    <li><strong>Privacy — the decisive one.</strong> MediaPipe runs <em>in the browser</em>. Training our own would mean shipping video to a server, which destroys the entire ethical position and with it the contribution.</li>
+  </ol>
+  <p><strong>What <em>is</em> ours:</strong> MediaPipe returns 478 coordinates. Deciding what counts as attentive, how to debounce it, and how to resist gaming is the contribution — rule logic on top of a proven detector.</p>
+
+  <h3>7.10 Why is the PEI a formula and not a model?</h3>
+  <ol>
+    <li><strong>No ground truth.</strong> There's no label for "true engagement" to train against — it would be circular to learn it from the very outcomes it's meant to predict.</li>
+    <li><strong>A right to explanation.</strong> A parent being scored deserves to know exactly why. <code>0.4 × hours + 0.3 × checks + 0.3 × attention</code> is fully auditable.</li>
+    <li><strong>Falsifiability.</strong> A learned scorer feeding a learned predictor would make the parental argument circular and unfalsifiable.</li>
+  </ol>
+
+  <h3>7.11 Why these technology choices?</h3>
+  <table>
+    <thead><tr><th>Chosen</th><th>Over</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><strong>FastAPI</strong></td><td>Django, Flask</td><td>Native async, Pydantic type validation at the boundary, and auto-generated OpenAPI docs. Django's ORM/admin would be dead weight — Supabase is the database layer.</td></tr>
+      <tr><td><strong>Supabase</strong></td><td>Raw Postgres, Firebase</td><td>Bundles Postgres + Auth + Storage + RLS. Firebase is NoSQL — a poor fit for relational student/parent/quiz data, and its JWT model is less suited to server-side role checks.</td></tr>
+      <tr><td><strong>React + TypeScript</strong></td><td>Angular, Vue</td><td>Type safety across a 3-portal app; largest ecosystem for charts and MediaPipe integration.</td></tr>
+      <tr><td><strong>scikit-learn</strong></td><td>TensorFlow, PyTorch</td><td>The right tool for tabular ML: fast, CPU-only, and the pipeline/metric tooling is exactly what a rigorous comparison needs.</td></tr>
+      <tr><td><strong>joblib <code>.pkl</code></strong></td><td>ONNX, pickle</td><td>joblib is scikit-learn's recommended serialisation for numpy-heavy estimators. ONNX would add conversion risk for no benefit when serving is also Python.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============ 8 ============ -->
+  <h2 id="s10"><span class="n">10</span>How a prediction is made, step by step</h2>
+  <p>When an admin clicks <strong>Run predictions</strong>:</p>
+  <ol>
+    <li><strong>Assemble the feature vector</strong> (<code>build_features</code>) — four queries per child: <code>quiz_attempts</code> → mean <code>score / max_score</code> + count; <code>student_activity</code> → row count + mean <code>watch_percent</code>; <code>academic_records</code> → mean attendance + mean of assessment/exam scores; <code>engagement_index</code> → latest row for the three parental features.</li>
+    <li><strong>Apply the missing-data policy</strong> — absent values → 0, except <code>parental_attention</code> → 0.5.</li>
+    <li><strong>Build a named DataFrame in the frozen order</strong> — column names come from <code>meta["feature_order"]</code>, so the model sees exactly the names it was fitted on. Prevents silent column misalignment.</li>
+    <li><strong><code>predict_proba</code></strong> returns three probabilities; the highest wins.</li>
+    <li><strong>Attach explanations</strong> — section 9.</li>
+    <li><strong>Persist</strong> to <code>predictions</code>; if the band worsened, fire a <code>risk_alert</code> to every linked parent.</li>
+  </ol>
+<pre><code>proba    = model.predict_proba(vector)[0]
+classes  = list(model.classes_)      # ['high', 'low', 'medium'] — alphabetical
+top_idx  = int(proba.argmax())
+risk_band  = classes[top_idx]
+risk_score = round(float(proba[top_idx]), 4)</code></pre>
+  <div class="callout note"><span class="tag">Detail worth knowing</span><p><code>model.classes_</code> is <code>['high', 'low', 'medium']</code> — scikit-learn sorts labels alphabetically, which is <em>not</em> the display order low→medium→high. Serving reads the band by index from <code>model.classes_</code> rather than assuming an order, so the two can never desynchronise. If asked, this is a deliberate correctness guard.</p></div>
+  <div class="callout warn"><span class="tag">Don't get caught on this</span><p><code>risk_score</code> is the model's <strong>confidence in the predicted class</strong>, not a 0–100 danger level. "Low risk, 0.92" means the model is 92% sure the student is <em>low</em> risk.</p></div>
+
+  <!-- ============ 9 ============ -->
+  <h2 id="s11"><span class="n">11</span>Prediction insights &amp; explainability</h2>
+  <p>Explanations take the <strong>top 4 features by global importance</strong>, compare each to a population midpoint, and phrase the result in plain language.</p>
+  <p><strong>Midpoints</strong> (from <code>features.py</code>): quiz average 0.55 · quizzes 5 · material activity 12 · watch 55% · attendance 80% · prior grades 55 · monitoring hours 3 · check-ins 8 · attention 0.5.</p>
+  <p>Every feature in the schema is <strong>protective</strong> — higher is safer — so a value below its midpoint <em>raises</em> risk. That's a single flag per feature, making a future risk-increasing feature a one-line change rather than a bug.</p>
+  <p>A parent sees something like:</p>
+  <ul>
+    <li>prior grades is low → <strong>raises</strong> risk (value 41.2)</li>
+    <li>quiz average is low → <strong>raises</strong> risk (value 0.38)</li>
+    <li>attendance is high → <strong>lowers</strong> risk (value 91.0)</li>
+    <li>parental monitoring hours is low → <strong>raises</strong> risk (value 1.4)</li>
+  </ul>
+  <div class="callout warn"><span class="tag">Volunteer this limitation</span><p><strong>These are global importance rankings, not per-child SHAP attributions.</strong> The same four features appear for every student; only the values and directions personalise. A genuine per-child attribution would use SHAP or LIME — that's the clear next step. Saying it first turns a gotcha into evidence of understanding.</p></div>
+
+  <!-- ============ 10 ============ -->
+  <h2 id="s12"><span class="n">12</span>The Parental Engagement Index</h2>
+  <p><strong>A transparent weighted formula. Not machine learning. Deliberately.</strong></p>
+<pre><code>PEI = 0.4 × norm(monitoring_hours, cap 10)
+    + 0.3 × norm(check_frequency,  cap 25)
+    + 0.3 × parental_attention          (0.5 placeholder until the camera)
+
+norm(v, cap) = clamp(v / cap, 0, 1)          weights sum to 1</code></pre>
+  <p><code>check_frequency</code> = history checks + notifications the parent has read.</p>
+  <div class="callout note"><span class="tag">Why the caps matter</span><p>The caps (10 hours, 25 checks) <strong>match the ranges the training data was generated in</strong>, so a PEI computed at runtime is directly comparable to the parental features the model trained on. Change one without retraining and serving silently drifts from training.</p></div>
+  <p>The <code>engagement_index</code> table is both a product surface (the parent sees their score) and the predictor's parental-feature source.</p>
+
+  <!-- ============ 11 ============ -->
+  <h2 id="s13"><span class="n">13</span>How the camera captures attention</h2>
+  <div class="callout novel"><span class="tag">The novelty</span><p>The camera points at the <strong>parent</strong>, and runs entirely in the browser.</p></div>
+
+  <h3>11.1 The pipeline</h3>
+  <ol>
+    <li><strong>Consent gate</strong> — explains on-device processing, no video stored, liveness, on-air indicator, 3-minute minimum. Nothing starts until accepted.</li>
+    <li><strong>Face landmarking</strong> — MediaPipe Tasks-Vision <strong>0.10.35</strong> <code>FaceLandmarker</code>, <strong>478 points</strong>, on a hidden self-view. Detection every <strong>120 ms (~8 fps)</strong>; React state throttled to <strong>250 ms</strong> so rendering never competes with inference.</li>
+    <li><strong>Liveness first</strong> — confirms a real person via <strong>blink or head motion</strong> before any attention counts. <strong>8-second timeout</strong>, retryable. This is what defeats a photograph propped in front of the webcam.</li>
+    <li><strong>Eyes-on-screen heuristic</strong> — attentive only if the iris is centred in <em>both</em> eyes <strong>and</strong> the head faces forward.</li>
+    <li><strong>Accumulation with debounce</strong> — a <strong>1.5 s grace window</strong> so a blink doesn't break the streak; frame gaps capped at <strong>500 ms</strong> so a stalled tab can't inflate totals.</li>
+    <li><strong>Anti-gaming</strong> — switching tabs counts as inattentive.</li>
+    <li><strong>Minimum-time lock</strong> — ≥3 minutes of genuine tracking before Stop enables, with a live countdown.</li>
+    <li><strong>Result POST</strong> — only <code>{attentive_seconds, total_seconds, liveness_passed}</code>. <strong>No frame ever leaves the browser.</strong></li>
+  </ol>
+
+  <h3>11.2 The thresholds — named constants, not magic numbers</h3>
+  <table>
+    <thead><tr><th>Threshold</th><th class="num">Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>horizontal</code></td><td class="num">0.23</td><td>Max iris deviation left/right from eye-centre</td></tr>
+      <tr><td><code>vertical</code></td><td class="num">0.30</td><td>Max iris deviation up/down</td></tr>
+      <tr><td><code>yaw</code></td><td class="num">0.16</td><td>Max head turn from facing forward</td></tr>
+      <tr><td><code>blinkLow</code></td><td class="num">0.16</td><td>Eye-aspect-ratio below this = eye shut</td></tr>
+      <tr><td><code>blinkOpen</code></td><td class="num">0.24</td><td>EAR above this = eye open again (completes a blink)</td></tr>
+      <tr><td><code>motion</code></td><td class="num">0.06</td><td>Yaw range counting as deliberate head motion</td></tr>
+    </tbody>
+  </table>
+  <p>Landmarks <strong>468</strong> and <strong>473</strong> are the two iris centres; eye corners and lids give the eye-aspect-ratio; nose tip <strong>1</strong> against face edges <strong>234/454</strong> gives head yaw.</p>
+  <div class="callout good"><span class="tag">Graceful degradation</span><p>Camera denied, absent or failed → monitoring continues on behaviour alone with the 0.5 placeholder. No schema change was ever needed, because the <code>attention_scores</code> socket existed from day one.</p></div>
+
+  <!-- ============ 12 ============ -->
+  <h2 id="s14"><span class="n">14</span>Application walkthrough</h2>
+  <div class="callout warn"><span class="tag">Screenshots needed — action required</span>
+    <p>The figures below are <strong>empty slots</strong> until you capture them. Create a folder <code>app/screenshots/</code> next to this file and save each PNG with the exact filename shown in the placeholder. Refresh the page and the images appear automatically — no editing needed.</p>
+    <p><strong>Capture tips:</strong> log in, press <kbd>F11</kbd> for fullscreen, use a 1440×900 window, and blur or use demo names for anything resembling real student data.</p>
+  </div>
+
+  <h3>12.1 Admin portal</h3>
+  <figure class="shot">
+    <img src="screenshots/01-admin-dashboard.png" alt="Admin dashboard">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/01-admin-dashboard.png</div>
+      <p class="hint">Admin landing page after login — the overview cards and role charts.</p></div>
+    <figcaption><b>Admin dashboard.</b> Entry point after login: account counts, role distribution, quick links to every management screen.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/02-admin-risk-roster.png" alt="Risk prediction roster">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/02-admin-risk-roster.png</div>
+      <p class="hint">Risk Predictions page, sorted high→low, with the "Run predictions" button visible.</p></div>
+    <figcaption><b>Risk roster.</b> Students sorted high → medium → low so at-risk cases surface first. <em>Run predictions</em> batch-scores every child; model-health metrics come straight from the meta sidecar.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/03-admin-student-detail.png" alt="Student detail with risk factors">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/03-admin-student-detail.png</div>
+      <p class="hint">Open one student — show the Performance risk card with its top factors listed.</p></div>
+    <figcaption><b>Student detail — the explainability payoff.</b> The Performance risk card lists the top-4 contributing factors with the student's own values and raises/lowers direction. <strong>Show this figure when asked how the model explains itself.</strong></figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/04-admin-insights.png" alt="Engagement vs performance scatter">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/04-admin-insights.png</div>
+      <p class="hint">Insights page — the engagement-vs-performance scatter plus the Pearson r figure.</p></div>
+    <figcaption><b>Insights — the thesis chart.</b> Engagement plotted against performance with a Pearson correlation. Note the on-screen "association, not causation" caveat — point at it before an examiner does.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/05-admin-optional-subjects.png" alt="Optional subjects assignment card">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/05-admin-optional-subjects.png</div>
+      <p class="hint">Student detail → the Optional subjects card, core as badges and electives as checkboxes.</p></div>
+    <figcaption><b>Optional subjects.</b> Core subjects appear read-only as badges; electives are checkboxes. One save replaces the student's whole optional set.</figcaption>
+  </figure>
+
+  <h3>12.2 Parent portal</h3>
+  <figure class="shot">
+    <img src="screenshots/06-parent-overview.png" alt="Parent overview with LampGauge">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/06-parent-overview.png</div>
+      <p class="hint">Parent overview — the LampGauge engagement score plus the formula breakdown.</p></div>
+    <figcaption><b>Parent overview.</b> The signature LampGauge shows the PEI, with the formula broken into its three weighted terms — the parent can see exactly why they scored what they scored.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/07-parent-camera-consent.png" alt="Camera consent gate">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/07-parent-camera-consent.png</div>
+      <p class="hint">The consent dialog before the camera starts — the ethics screenshot.</p></div>
+    <figcaption><b>Consent gate — the ethics figure.</b> Explains on-device processing, that no video is stored, the liveness check and the 3-minute minimum. Nothing starts until accepted. <strong>Show this when the ethics question comes.</strong></figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/08-parent-camera-active.png" alt="Camera panel tracking attention">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/08-parent-camera-active.png</div>
+      <p class="hint">Camera panel mid-session — on-air indicator, live attention %, countdown to the 3-minute lock.</p></div>
+    <figcaption><b>Attention tracking live.</b> On-air indicator, running attention percentage and the countdown until Stop unlocks. The self-view is hidden by design — landmarking needs no visible video.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/09-parent-prediction-card.png" alt="Prediction card with top factors">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/09-parent-prediction-card.png</div>
+      <p class="hint">The PredictionCard — band, confidence, top factors, risk scale.</p></div>
+    <figcaption><b>Prediction as a parent sees it.</b> Band, confidence, top factors and a low/medium/high scale — deliberately in supportive language, never blame.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/10-parent-attention-history.png" alt="Attention history">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/10-parent-attention-history.png</div>
+      <p class="hint">Attention History tab — past sessions with their attention scores.</p></div>
+    <figcaption><b>Attention history.</b> Per-session attention scores over time — numbers only; no video was ever recorded.</figcaption>
+  </figure>
+
+  <h3>12.3 Child portal</h3>
+  <figure class="shot">
+    <img src="screenshots/11-child-learn.png" alt="Child learning page">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/11-child-learn.png</div>
+      <p class="hint">Child's Learn page — subjects with materials and quizzes.</p></div>
+    <figcaption><b>Child portal.</b> Subjects → materials and quizzes. With optional subjects live, this student sees only core subjects plus their own assigned electives — enforced server-side, not hidden in the UI.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/12-child-progress.png" alt="Child progress page">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/12-child-progress.png</div>
+      <p class="hint">My Progress — trend, activity and scores. Note: no risk band anywhere.</p></div>
+    <figcaption><b>My Progress — note what's absent.</b> Trend, activity and scores, but <strong>no risk prediction anywhere</strong>. That's the ethical design choice, visible in the product.</figcaption>
+  </figure>
+
+  <h3>12.4 Optional but persuasive</h3>
+  <figure class="shot">
+    <img src="screenshots/13-api-docs.png" alt="FastAPI OpenAPI docs">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/13-api-docs.png</div>
+      <p class="hint">Visit <code>http://localhost:8001/docs</code> — the auto-generated Swagger UI listing all 54 endpoints.</p></div>
+    <figcaption><b>Auto-generated API docs.</b> FastAPI produces this from the type hints. Useful evidence of engineering rigour if asked about the backend surface.</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="screenshots/14-training-output.png" alt="Training script console output">
+    <div class="ph"><div class="ico">📸</div><div class="fn">screenshots/14-training-output.png</div>
+      <p class="hint">Run <code>python -m app.ml.train_predictor</code> and screenshot the console — all three models, confusion matrices, importances.</p></div>
+    <figcaption><b>Training run.</b> Shows all three candidates side by side with confusion matrices and the final feature importances. <strong>The single most persuasive artifact for the model-comparison question</strong> — it proves the benchmarks were really run.</figcaption>
+  </figure>
+
+  <!-- ============ 13 ============ -->
+  <h2 id="s15"><span class="n">15</span>Limitations — raise these yourself</h2>
+  <p>Raising a limitation first is worth more than being caught by it.</p>
+  <ol>
+    <li><strong>Trained on simulated data.</strong> ~74.5% accuracy reflects simulated relationships. Association, not causation.</li>
+    <li><strong>Random Forest did not win outright.</strong> GB edges it on test F1, LR on CV F1. Chosen for explainability.</li>
+    <li><strong>Explanations are global importances, not per-child SHAP.</strong></li>
+    <li><strong><code>parental_attention</code> is the least-important feature at 0.0586</strong> — because it has compressed variance in simulation and is constant at 0.5 across the 480 xAPI rows, not because the real signal is weak. See <a href="#s8">7.7</a>.</li>
+    <li><strong>Camera thresholds need real-device calibration.</strong> Treat the attention percentage as indicative.</li>
+    <li><strong>PEI weights are chosen, not learned</strong> — by design, but they are a judgement.</li>
+    <li><strong>No parent face-matching</strong> — deliberately not built. Biometric PII, and liveness suffices for the claim.</li>
+    <li><strong>Tests use an in-memory fake database</strong> — they validate logic, not schema drift.</li>
+  </ol>
+
+  <!-- ============ 14 ============ -->
+  <h2 id="s16"><span class="n">16</span>Viva questions &amp; answers</h2>
+  <p><em>Click a question to reveal the answer. Try answering aloud first.</em></p>
+
+  <h3>14.1 On the research</h3>
+  <div class="qa"><p class="q">What is your actual research contribution?</p><p class="a">Objective, camera-verified measurement of parental attention. The involvement→performance link is established; my contribution is methodological — applying Multimodal Learning Analytics to a new subject, the parent, replacing self-reports with an on-device measurement.</p></div>
+  <div class="qa"><p class="q">Why is this Multimodal Learning Analytics?</p><p class="a">Because it fuses two different data modalities: interaction logs from the LMS, and camera-derived attention data. Behavioural logs alone would be ordinary Learning Analytics.</p></div>
+  <div class="qa"><p class="q">Why simulated data? Isn't that a weakness?</p><p class="a">No public dataset holds this feature combination per O/L student — parental monitoring hours and camera-verified attention don't exist in any published set because nobody has collected them. I mined xAPI and UCI for documented relationships, reproduced them in my schema, and recast 480 real xAPI rows alongside 1,200 simulated ones. I demonstrate the method; every result is framed as association; every row is tagged with its <code>data_source</code>.</p></div>
+  <div class="qa"><p class="q">Isn't your model just learning relationships you designed in?</p><p class="a">Partly, yes, and I state that openly. The simulation encodes effect sizes taken from published datasets rather than invented ones, and 480 rows are real. What this validates is the pipeline — feature contract, training, serving, explanation — not a real-world effect size. Proving the effect requires a real cohort, which is the stated next step.</p></div>
+  <div class="qa"><p class="q">What is Design Science Research and why did you use it?</p><p class="a">DSR is a methodology where the research output is a designed artifact, evaluated against defined criteria — as opposed to a hypothesis tested on observational data. It fits because my contribution <em>is</em> the instrument: a working system that measures parental attention objectively. I build it, then evaluate it. A purely empirical methodology would have required the real cohort I don't have.</p></div>
+
+  <h3>14.2 On the machine learning</h3>
+  <div class="qa"><p class="q">How many models did you train?</p><p class="a">Exactly one shipped: the Random Forest. Two more — Logistic Regression and Gradient Boosting — were trained purely as benchmarks. MediaPipe is pre-trained and used as-is. The PEI is a formula, not a model.</p></div>
+  <div class="qa"><p class="q">Why Random Forest and not deep learning?</p><p class="a">Two reasons. Tree ensembles beat neural networks on tabular data of this size — 1,680 rows would badly overfit a network. And explainability is the point: the feature importances <em>are</em> my parental-factor argument. A black box would defeat the research purpose.</p></div>
+  <div class="qa"><p class="q">Explain how a Random Forest works.</p><p class="a">A single decision tree asks a chain of yes/no threshold questions and overfits its training data. A Random Forest trains 300 trees, each on a random bootstrap sample of rows and considering a random subset of features at each split, then takes a majority vote. The randomness decorrelates their errors so they cancel — that's bagging. Counting how much each feature reduced impurity across all 300 trees gives feature importances for free.</p></div>
+  <div class="qa"><p class="q">Is 74.5% accuracy good?</p><p class="a">On three classes, chance is ~33%, so 0.745 accuracy and 0.752 macro-F1 is a solid, balanced result. Macro-F1 matters more than accuracy here because it weights all three bands equally regardless of class size. But it's on simulated plus xAPI data, so it validates the pipeline, not a real-world effect.</p></div>
+  <div class="qa"><p class="q">Why macro-F1 rather than accuracy?</p><p class="a">Accuracy hides poor performance on a minority band — always predicting the majority class would still score reasonably. Macro-F1 averages per-class F1 equally, so failing on "high risk" is penalised properly. Missing a genuinely at-risk student is the costly error here.</p></div>
+  <div class="qa"><p class="q">What's the difference between precision and recall in your context?</p><p class="a">Precision on the high-risk class: of the students I flagged as high risk, how many really were — low precision wastes staff time. Recall: of the genuinely high-risk students, how many did I catch — low recall means children slip through. Recall matters more for the intervention use-case, which is why I report macro-F1 rather than accuracy alone.</p></div>
+  <div class="qa"><p class="q">Did Random Forest actually beat the others?</p><p class="a">No, and I'm explicit. Gradient Boosting has slightly better test F1 (0.7540 vs 0.7521); Logistic Regression has better cross-validated F1 (0.7504 vs 0.7281) and is the most stable. All three within 1.4 points. I selected on explainability, and my training script encodes that — it only overrides Random Forest if a challenger beats it on CV F1 by more than 0.03.</p></div>
+  <div class="qa"><p class="q">Why is your CV F1 lower than your test F1?</p><p class="a">The test score comes from one particular 25% split; the CV mean averages five folds and is the more trustworthy estimate. A gap of ~0.024 against a standard deviation of 0.037 means the test split was slightly favourable — normal variance, not overfitting.</p></div>
+  <div class="qa"><p class="q">How do you prevent overfitting?</p><p class="a">Bagging across 300 trees on bootstrap samples; a stratified held-out test set never seen during fitting; and 5-fold cross-validation reported alongside. I didn't cap <code>max_depth</code> — with 300 trees, ensemble averaging controls variance, and the CV standard deviation of 0.037 confirms it isn't memorising.</p></div>
+  <div class="qa"><p class="q">Why 300 trees? Why not 100 or 1000?</p><p class="a">Random Forest performance plateaus as trees increase — more trees never hurt accuracy, only training time. 300 is comfortably past the plateau for 9 features and 1,680 rows while still training in seconds. Below ~100 the importances start to jitter between runs, which would undermine the explanation stability I depend on.</p></div>
+  <div class="qa"><p class="q">Why no feature scaling?</p><p class="a">Trees split on thresholds within a single feature, so monotonic rescaling changes nothing. Only the Logistic Regression benchmark is wrapped with a <code>StandardScaler</code>, so it competes fairly rather than being hobbled.</p></div>
+  <div class="qa"><p class="q">What is <code>random_state=42</code> for?</p><p class="a">Reproducibility. It fixes the bootstrap sampling, feature subsampling and the train/test split, so the same data produces the same model and the same reported metrics on any machine.</p></div>
+  <div class="qa"><p class="q">Why stratified splitting?</p><p class="a">It preserves the proportion of low/medium/high in both train and test. Without it, a random split could under-represent the high-risk band in training, and the test metrics for that class would be computed on very few rows — unstable and misleading.</p></div>
+  <div class="qa"><p class="q">Why not use XGBoost?</p><p class="a">scikit-learn's <code>GradientBoostingClassifier</code> is the same family and was benchmarked — it didn't meaningfully win. Adding XGBoost would introduce a heavier dependency to chase a difference smaller than the noise floor. At 100× the data it would be the first thing I'd try.</p></div>
+  <div class="qa"><p class="q">Why classification rather than regression?</p><p class="a">The intervention is categorical — staff triage into "watch this one" buckets, not "predicted score 61.4". Three ordered bands match how the output is used, make the confidence figure meaningful via <code>predict_proba</code>, and let me weight the asymmetric cost of missing a high-risk student through macro-F1.</p></div>
+
+  <h3>14.3 On prediction and explanation</h3>
+  <div class="qa"><p class="q">Walk me through one prediction.</p><p class="a">Four queries assemble the nine features for that child; missing values default to 0 except attention which defaults to 0.5; the vector is built as a named DataFrame in the frozen feature order; <code>predict_proba</code> returns three probabilities; the highest becomes the band and its probability the confidence; the top four features by importance are annotated against population midpoints; the result is written to <code>predictions</code> and, if the band worsened, a <code>risk_alert</code> fires to linked parents.</p></div>
+  <div class="qa"><p class="q">What does <code>risk_score</code> mean?</p><p class="a">The model's confidence in the predicted class, not a danger magnitude. Low risk with 0.92 means 92% confident the student is low risk.</p></div>
+  <div class="qa"><p class="q">How does the model explain itself?</p><p class="a">Top four features by global importance, each compared to a population midpoint and phrased as "raises" or "lowers" risk with the student's own value. I'm transparent that these are global rankings, not per-child SHAP attributions — the same four appear for everyone, only the values personalise. SHAP is the natural next step.</p></div>
+  <div class="qa"><p class="q">Why does the feature order need to be frozen?</p><p class="a">The model is fitted on positional columns. If serving built the vector in a different order, every prediction would be silently wrong — no error, just nonsense. So the order lives in one file used by both training and serving, and is written into the model's metadata sidecar; serving rebuilds a named DataFrame from that stored order.</p></div>
+  <div class="qa"><p class="q">What happens to a brand-new student with no data?</p><p class="a">Every behavioural feature is 0, pushing them toward high risk. That's the correct default — an invisible student is a concern, not a safe one — but it should be read as "insufficient data" rather than a genuine assessment.</p></div>
+  <div class="qa"><p class="q">How often does the model retrain?</p><p class="a">It doesn't retrain automatically — training is an offline script run deliberately, and the artifact is versioned as <code>predictor_v1</code>. That's intentional: a model that silently retrains on production data can drift without anyone noticing, and for a system making risk judgements about children, the model in use should be a known, auditable artifact.</p></div>
+
+  <h3>14.4 On the camera</h3>
+  <div class="qa"><p class="q">Isn't a camera on a parent an ethics problem?</p><p class="a">I designed for it. All processing is in-browser; only a number and a duration are stored; no frame leaves the device. There's an explicit consent gate, a visible on-air indicator and a liveness check. Real data collection would require formal ethics-committee review given minors and a webcam.</p></div>
+  <div class="qa"><p class="q">How do you stop a parent gaming the timer?</p><p class="a">Four defences. Liveness confirms a live person rather than a photo. Tab-switching counts as inattentive. Frame gaps are capped at 500 ms so a stalled tab can't inflate totals. And at least 3 minutes of genuine tracking must accrue before Stop enables.</p></div>
+  <div class="qa"><p class="q">How do you know they're looking at the screen and not past it?</p><p class="a">A two-condition heuristic: iris centred within 0.23 horizontally and 0.30 vertically in both eyes, <em>and</em> head yaw within 0.16 of forward. Both must hold. I'm honest that it's a heuristic — true gaze estimation needs per-device calibration, so I treat the output as indicative.</p></div>
+  <div class="qa"><p class="q">Why not train your own attention model?</p><p class="a">No parent-attention dataset exists. Fine-tuning would need labelled gaze data, a GPU and weeks. And MediaPipe runs in-browser, which is the entire privacy argument — training my own would mean shipping video to a server.</p></div>
+  <div class="qa"><p class="q">What if the parent has no webcam?</p><p class="a">Monitoring continues on behaviour alone with the 0.5 neutral placeholder. The <code>attention_scores</code> table existed from day one, so no schema change was needed.</p></div>
+  <div class="qa"><p class="q">How do you know it's the parent and not someone else?</p><p class="a">I don't verify identity, and that's deliberate. Face matching would mean storing biometric PII — a serious escalation in both ethics and data-protection obligation. Liveness confirms a real person is present, which is sufficient for the research claim: that attention can be measured objectively rather than self-reported. Identity verification is a separate problem I explicitly scoped out.</p></div>
+
+  <h3>14.5 On the system</h3>
+  <div class="qa"><p class="q">How do you stop one family reading another's data?</p><p class="a">Every table has RLS enabled; sensitive tables have no client-read policy at all, so they're reachable only through my API. The API enforces two independent layers: a role guard, and an ownership check verifying a <code>parent_child_link</code> row for that exact child. Role alone is never sufficient.</p></div>
+  <div class="qa"><p class="q">Why enable RLS but not write policies?</p><p class="a">Defence in depth. RLS on with no policy means a leaked anon key still reads nothing. The rules this system needs — link-based, column-aware, state-dependent — can't be expressed cleanly in SQL policies, and splitting them across two places would create two sources of truth that drift.</p></div>
+  <div class="qa"><p class="q">Why read the role from the database rather than the JWT?</p><p class="a">The token proves identity; the database is the source of truth for permissions. Revoking a role takes effect on the next request instead of when the token expires.</p></div>
+  <div class="qa"><p class="q">Why doesn't the child see their risk score?</p><p class="a">A "high risk" label is self-fulfilling for a teenager. Risk is visible only to admins and parents, always in supportive language. It's an ethical design choice, not a technical limitation.</p></div>
+  <div class="qa"><p class="q">Why FastAPI rather than Django or Flask?</p><p class="a">Native async, Pydantic type validation at the boundary, and auto-generated OpenAPI docs. Django's ORM and admin would be dead weight since Supabase is the database layer, and Flask would mean assembling validation and docs by hand.</p></div>
+  <div class="qa"><p class="q">Why Supabase rather than Firebase?</p><p class="a">Firebase is NoSQL, a poor fit for inherently relational data — students, parents, links, quizzes, attempts. Supabase gives real Postgres with foreign keys and constraints, plus Auth, Storage and RLS in one product, and its JWT model works cleanly with server-side role checks.</p></div>
+  <div class="qa"><p class="q">How did you test this?</p><p class="a">pytest against an in-memory fake Supabase client that reproduces the query-builder surface the code uses, so tests are deterministic and fast — currently 44 passing, including authorization tests proving a child gets 403 on a subject they don't take. Frontend correctness is enforced by <code>tsc</code>. I'm clear on the boundary: these test my logic, not schema drift.</p></div>
+  <div class="qa"><p class="q">How do you know the tests are meaningful if they don't hit a real database?</p><p class="a">They test <em>my</em> logic — authorization, filtering, grading — deterministically. I'm explicit that they cannot catch schema drift: a missing migration passes every test and fails immediately in the browser. That's exactly why applying migrations is a documented deployment step rather than something assumed.</p></div>
+  <div class="qa"><p class="q">What would you do next?</p><p class="a">Retrain on a real consented cohort; a real-device gaze-calibration pass; per-child SHAP explanations; and, ethics permitting, fold the real camera attention signal into training rather than the 0.5 placeholder.</p></div>
+
+  <!-- ============ 15 ============ -->
+  <h2 id="s17"><span class="n">17</span>The hard questions</h2>
+  <p>The ones designed to find whether you understand your own work. <strong>Prepare these above all else.</strong></p>
+  <div class="hard">
+  <div class="qa"><p class="q">Your most important feature is prior academic score at 0.218. Doesn't that mean your model just predicts that past grades predict future grades — which is trivially known?</p><p class="a">Partly, and that's expected: prior attainment is the strongest predictor in essentially all of the educational-data-mining literature, so a model that <em>didn't</em> find it would be suspect. It's a sanity check that the pipeline works. The interesting result is what sits alongside it — the three parental features together carry 0.223, marginally more than prior grades alone, and they're <strong>actionable</strong> in a way past grades are not. You cannot change a student's history; you can change how a parent engages this term.</p></div>
+  <div class="qa"><p class="q">Your camera feature is the least important at 0.059. Doesn't that undermine your entire thesis?</p><p class="a">It's the fairest challenge available, and the answer is that the number is an <strong>artifact of how the feature had to be constructed, not a finding about the real signal</strong>. Be precise here, because a careless version of this answer is checkable and wrong: the feature is <em>not</em> simply constant. In the 1,200 simulated rows it varies; it is constant at 0.5 only in the 480 recast xAPI rows. Three things suppress its importance. First, <strong>compressed variance</strong> — in simulation it spans about 0.325–0.675 while <code>prior_avg_score</code> spans 35–90, and trees split on thresholds, so a narrow range offers fewer discriminating cut-points. Second, it is <strong>constant across 28.6% of the data</strong>, contributing nothing there. Third, it is drawn from the <strong>same latent factor</strong> as the stronger features, and under correlated inputs tree ensembles attribute importance to whichever feature splits most cleanly — classic importance dilution. The telling detail: I assigned it weight <strong>0.10 in the label formula, fifth of nine</strong>, yet it recovers as last at 0.0586. That gap between designed weight and recovered importance <em>is</em> the result — with a low-variance, partly-constant proxy the signal cannot be recovered, which is exactly the argument for collecting real camera data. Reading 0.0586 as "the camera doesn't matter" would misread my own experiment. See section 7.7.</p></div>
+  <div class="qa"><p class="q">If the PEI feeds the predictor, and reading a risk alert raises the PEI, haven't you built a circular system?</p><p class="a">There is a feedback loop, and it's deliberate rather than accidental: parental responsiveness flows back into the next prediction without retraining. It isn't circular in the invalidating sense, because the loop passes through <em>real-world behaviour</em> — a parent must actually open the notification. But it does mean PEI and risk are not independent over time, so a longitudinal study would need to account for it. It's a limitation of the deployed feedback design, not of the model.</p></div>
+  <div class="qa"><p class="q">Your three models are within 1.4%. Isn't that just saying your features are weak and the algorithm doesn't matter?</p><p class="a">It says the signal is in the <em>features</em>, not the algorithm — which is the normal finding on well-constructed tabular problems and is genuinely informative. When three model families with very different inductive biases converge, the ceiling is being set by the information in the features. That strengthens rather than weakens the case for choosing on explainability, since accuracy isn't being sacrificed to get it. It also tells me where to invest next: better features, or real data — not a fancier algorithm.</p></div>
+  <div class="qa"><p class="q">You said 18 tables but one is unused. Is that not dead code?</p><p class="a"><code>messages</code> was created up-front as part of a deliberate strategy: later-phase tables were included in the initial schema so no phase needed a mid-project migration. That paid off for <code>attention_scores</code>, which meant the Phase 7 camera needed no schema change at all. <code>messages</code> is the case where the feature was descoped. An empty table costs nothing, whereas a migration mid-project costs a lot — but it's fair to call it a loose end.</p></div>
+  <div class="qa"><p class="q">How would you validate that camera-measured attention beats self-reported involvement — your central claim?</p><p class="a">I'd need both measures on the same cohort: a standard parental-involvement self-report questionnaire, the camera measurement, and student outcomes over a term. The test is which measure correlates more strongly with outcomes, and whether the camera measure adds predictive power over the questionnaire in a nested model comparison. I'd also quantify self-report bias directly by comparing what parents claim against what was measured. That study isn't in this project's scope — this project builds the instrument that would make it possible.</p></div>
+  <div class="qa"><p class="q">A parent could just sit in front of the camera and scroll their phone. Your system would record full attention.</p><p class="a">Correct, and that's a real limitation of gaze-only measurement. My defences catch absence and inattention — looking away, turning the head, leaving the tab, propping up a photo — but not a person physically facing the screen while mentally disengaged. Detecting genuine cognitive engagement would need a different modality: expression analysis, or correlating attention with interaction events like scrolling and clicking. That correlation is actually the cheapest next step, since I already log both.</p></div>
+  <div class="qa"><p class="q">Why should a school trust a model trained on data you invented?</p><p class="a">It shouldn't, and I wouldn't ask it to. The deployable claim is narrower: this is a working, explainable pipeline whose predictions are auditable factor by factor, validated end to end on data with realistic structure. Before any school acted on a prediction, the model would need retraining on that school's real, consented cohort — the code path for that is exactly the same script. What I'm defending is the method and the instrument, not this specific set of weights.</p></div>
+  </div>
+
+  <!-- ============ 16 ============ -->
+  <h2 id="s18"><span class="n">18</span>Cheat sheet</h2>
+  <table>
+    <thead><tr><th>Quantity</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Tables / used / endpoints / routers</td><td>18 / 17 / 54 / 14</td></tr>
+      <tr><td>Features</td><td>9 (3 parental)</td></tr>
+      <tr><td>Classes</td><td>3 — low, medium, high</td></tr>
+      <tr><td>Training rows</td><td>1,680 = 1,200 simulated + 480 xAPI</td></tr>
+      <tr><td>Trees / split / CV</td><td>300 / 75-25 stratified / 5-fold</td></tr>
+      <tr><td>Seed</td><td>42</td></tr>
+      <tr class="win"><td><strong>Accuracy / macro-F1</strong></td><td><strong>0.7452 / 0.7521</strong></td></tr>
+      <tr><td>CV F1</td><td>0.7281 ± 0.037</td></tr>
+      <tr><td>Top feature</td><td><code>prior_avg_score</code> 0.2176</td></tr>
+      <tr class="win"><td><strong>Parental block combined</strong></td><td><strong>0.223</strong></td></tr>
+      <tr><td>Weakest feature</td><td><code>parental_attention</code> 0.0586 — low-variance artifact, see 7.7</td></tr>
+      <tr><td>PEI weights / caps</td><td>0.4 hours + 0.3 checks + 0.3 attention / 10 h, 25 checks</td></tr>
+      <tr><td>Camera</td><td>MediaPipe 0.10.35, 478 points, ~8 fps</td></tr>
+      <tr><td>Grace / frame cap / min lock</td><td>1.5 s / 500 ms / 3 min</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout good"><span class="tag">Three sentences if you have no time</span>
+    <ol style="margin:6px 0 0">
+      <li>One trained model — an explainable Random Forest predicting three risk bands from nine features, three of them parental.</li>
+      <li>The novelty is the camera pointed at the <strong>parent</strong>, verified in-browser, storing only a number.</li>
+      <li>The data is simulated, so it validates the method, not an effect size — every result is association, never causation.</li>
+    </ol>
+  </div>
+  <div class="callout note"><span class="tag">If you don't know an answer</span><p>Say what you <em>do</em> know, name the limitation, and say what you'd do to find out. <strong>"I don't know, but here's how I'd check"</strong> scores far better than a confident guess — examiners are testing judgement, not recall.</p></div>
+
+  <footer>
+    Viva Guide — generated from the live codebase and <code>predictor_v1.meta.json</code>.
+    Model trained 2026-07-25. Setup: <code>CLIENT_SETUP.md</code> · Phase status: <code>README.md</code>.
+    Note that <code>TECHNICAL_DOCUMENTATION.html</code> is an earlier document and its table/endpoint counts are out of date.
+  </footer>
+</main>
+</div>
+
+<script>
+  // Collapsible Q&A
+  document.querySelectorAll('.qa .q').forEach(function (q) {
+    q.addEventListener('click', function () { q.parentElement.classList.toggle('open'); });
+  });
+  function allQA(open) {
+    document.querySelectorAll('.qa').forEach(function (el) { el.classList.toggle('open', open); });
+  }
+  // Expand everything before printing so the PDF is complete
+  window.addEventListener('beforeprint', function () { allQA(true); });
+
+  // Question search
+  var search = document.getElementById('q-search');
+  search.addEventListener('input', function () {
+    var term = search.value.trim().toLowerCase();
+    document.querySelectorAll('.qa').forEach(function (el) {
+      var hit = !term || el.textContent.toLowerCase().indexOf(term) !== -1;
+      el.classList.toggle('hidden', !hit);
+      if (term && hit) el.classList.add('open');
+    });
+  });
+
+  // Scroll-spy on the sidebar
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var i = sections.indexOf(e.target);
+      if (i < 0) return;
+      links.forEach(function (l) { l.classList.remove('active'); });
+      links[i].classList.add('active');
+    });
+  }, { rootMargin: '0px 0px -75% 0px' });
+  sections.forEach(function (s) { if (s) spy.observe(s); });
+
+  // Mark screenshot slots whose image is missing, so the placeholder shows
+  document.querySelectorAll('figure.shot img').forEach(function (img) {
+    function miss() { img.closest('figure').classList.add('missing'); }
+    img.addEventListener('error', miss);
+    if (img.complete && img.naturalWidth === 0) miss();
+  });
+</script>
+</body>
+</html>
