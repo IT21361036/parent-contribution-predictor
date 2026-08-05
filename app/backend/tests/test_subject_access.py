@@ -82,3 +82,59 @@ def test_admin_subject_list_shows_everything(client, fake_db):
 
     assert res.status_code == 200
     assert len(res.json()) == 4
+
+
+def _seed_materials(fake_db: FakeSupabase) -> None:
+    _seed(fake_db)
+    fake_db.store["learning_materials"] = [
+        {"id": "m-1", "subject_id": "s-maths", "title": "Algebra", "storage_path": "p1"},
+        {"id": "m-2", "subject_id": "s-ict", "title": "Databases", "storage_path": "p2"},
+        {"id": "m-3", "subject_id": "s-art", "title": "Colour theory", "storage_path": "p3"},
+    ]
+
+
+def test_child_cannot_list_materials_of_unassigned_subject(client, fake_db):
+    _seed_materials(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/materials?subject_id=s-art")
+
+    assert res.status_code == 403
+
+
+def test_child_can_list_materials_of_assigned_subject(client, fake_db):
+    _seed_materials(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/materials?subject_id=s-ict")
+
+    assert res.status_code == 200
+    assert [m["id"] for m in res.json()] == ["m-2"]
+
+
+def test_unfiltered_material_list_excludes_unassigned_subjects(client, fake_db):
+    _seed_materials(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/materials")
+
+    assert res.status_code == 200
+    assert {m["id"] for m in res.json()} == {"m-1", "m-2"}
+
+
+def test_child_cannot_download_material_of_unassigned_subject(client, fake_db):
+    _seed_materials(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/materials/m-3/download")
+
+    assert res.status_code == 403
+
+
+def test_admin_material_list_is_never_filtered(client, fake_db):
+    _seed_materials(fake_db)
+
+    res = client.get("/materials")
+
+    assert res.status_code == 200
+    assert len(res.json()) == 3
