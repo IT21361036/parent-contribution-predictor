@@ -33,12 +33,30 @@ create table parent_child_link (
 );
 
 -- ========== SUBJECTS ==========
+-- O/L students all take the core subjects; optional (elective) subjects differ
+-- per student and are assigned by an admin in child_subjects below.
 create table subjects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   grade_level text,
+  is_core boolean not null default true,
   created_at timestamptz default now()
 );
+
+-- Which optional subjects a given child takes. Core subjects are NOT stored
+-- here — they are implicit for every child. Both foreign keys cascade, so
+-- deleting a student or a subject cleans up its assignments automatically.
+create table child_subjects (
+  id uuid primary key default gen_random_uuid(),
+  child_id    uuid not null references profiles(id) on delete cascade,
+  subject_id  uuid not null references subjects(id) on delete cascade,
+  assigned_by uuid references profiles(id),
+  created_at  timestamptz default now(),
+  unique (child_id, subject_id)
+);
+
+-- Service-role API only (see the golden rule): RLS on, deliberately no policy.
+alter table child_subjects enable row level security;
 
 -- ========== LEARNING MATERIALS (docs, videos, exams) ==========
 create type material_type as enum ('document', 'video', 'exam_paper', 'slide');

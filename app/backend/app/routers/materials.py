@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_role
 from app.db.supabase_client import get_service_client
+from app.services.subject_access import allowed_subject_ids, assert_subject_allowed
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
@@ -14,12 +15,20 @@ STORAGE_BUCKET = "materials"
 
 
 @router.get("")
-def list_materials(subject_id: str | None = None, _: CurrentUser = Depends(get_current_user)):
+def list_materials(subject_id: str | None = None, user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
+    assert_subject_allowed(client, user, subject_id)
+
     query = client.table("learning_materials").select("*").order("created_at", desc=True)
     if subject_id:
         query = query.eq("subject_id", subject_id)
-    return query.execute().data
+    materials = query.execute().data or []
+
+    # No subject filter supplied: drop the subjects this child does not take.
+    if user.role == "child" and not subject_id:
+        allowed = allowed_subject_ids(client, user.id)
+        materials = [m for m in materials if m["subject_id"] in allowed]
+    return materials
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -64,11 +73,11 @@ def upload_material(
 
 
 @router.get("/{material_id}/download")
-def get_download_url(material_id: str, _: CurrentUser = Depends(get_current_user)):
+def get_download_url(material_id: str, user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
     material = (
         client.table("learning_materials")
-        .select("storage_path")
+        .select("storage_path, subject_id")
         .eq("id", material_id)
         .maybe_single()
         .execute()
@@ -76,6 +85,9 @@ def get_download_url(material_id: str, _: CurrentUser = Depends(get_current_user
     )
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
+
+    # Without this a child could download any subject's file by guessing an id.
+    assert_subject_allowed(client, user, material.get("subject_id"))
 
     # The object can be absent (e.g. uploaded before the bucket existed, or later
     # removed). Turn the storage error into a clean 404 — an uncaught 500 escapes

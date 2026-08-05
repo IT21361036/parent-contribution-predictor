@@ -8,6 +8,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Avatar } from '../../components/ui/Avatar'
 import { Alert } from '../../components/ui/Alert'
 import { Field, Input } from '../../components/ui/Field'
+import { OptionalSubjectsCard } from '../../components/admin/OptionalSubjectsCard'
 import { apiGet, apiPost, apiUpload, apiDelete } from '../../lib/api'
 import { useToast } from '../../contexts/ToastContext'
 import { RISK_META } from '../../lib/risk'
@@ -108,6 +109,9 @@ export default function StudentDetailPage() {
             <EmptyState icon={ShieldAlert} title="No prediction yet" description="Run predictions from the roster to generate one." />
           )}
         </Card>
+
+        {/* Optional subjects */}
+        {id && <OptionalSubjectsCard childId={id} />}
 
         {/* Academics */}
         <Card title="Academic records" description="Assessment, exam and attendance by term">

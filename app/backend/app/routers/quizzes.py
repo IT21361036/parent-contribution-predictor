@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from app.auth.dependencies import CurrentUser, get_current_user, require_role
 from app.db.supabase_client import get_service_client
 from app.services.notifications import notify_quiz_result, notify_safe
+from app.services.subject_access import allowed_subject_ids, assert_subject_allowed
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
@@ -49,10 +50,16 @@ class GradeAttemptRequest(BaseModel):
 @router.get("")
 def list_quizzes(subject_id: str | None = None, user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
+    assert_subject_allowed(client, user, subject_id)
+
     query = client.table("quizzes").select("*").order("created_at", desc=True)
     if subject_id:
         query = query.eq("subject_id", subject_id)
-    quizzes = query.execute().data
+    quizzes = query.execute().data or []
+
+    if user.role == "child" and not subject_id:
+        allowed = allowed_subject_ids(client, user.id)
+        quizzes = [q for q in quizzes if q["subject_id"] in allowed]
 
     # Admins (the content authors) see how many attempts each quiz has received.
     if user.role == "admin" and quizzes:
@@ -116,6 +123,7 @@ def get_quiz(quiz_id: str, user: CurrentUser = Depends(get_current_user)):
     quiz = client.table("quizzes").select("*").eq("id", quiz_id).single().execute().data
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
+    assert_subject_allowed(client, user, quiz.get("subject_id"))
     questions = client.table("quiz_questions").select("*").eq("quiz_id", quiz_id).execute().data
 
     # A child taking the quiz must not receive the answer key — only
@@ -129,6 +137,15 @@ def get_quiz(quiz_id: str, user: CurrentUser = Depends(get_current_user)):
 @router.post("/{quiz_id}/attempts", status_code=201)
 def submit_attempt(quiz_id: str, body: SubmitAttemptRequest, user: CurrentUser = Depends(require_child)):
     client = get_service_client()
+
+    # Check the subject before doing any work: an attempt on a subject the
+    # student does not take would pollute their score history and the
+    # predictor's features.
+    quiz = client.table("quizzes").select("subject_id").eq("id", quiz_id).maybe_single().execute().data
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    assert_subject_allowed(client, user, quiz.get("subject_id"))
+
     questions = client.table("quiz_questions").select("*").eq("quiz_id", quiz_id).execute().data
     if not questions:
         raise HTTPException(status_code=404, detail="Quiz not found")

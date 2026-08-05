@@ -145,6 +145,7 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.grade_level ? `(${s.grade_level})` : ''}
+                    {s.is_core ? '' : ' (optional)'}
                   </option>
                 ))}
               </Select>
@@ -582,6 +583,7 @@ function CreateSubjectModal({
 }) {
   const [name, setName] = useState('')
   const [gradeLevel, setGradeLevel] = useState('')
+  const [isCore, setIsCore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -590,9 +592,14 @@ function CreateSubjectModal({
     setError(null)
     setSubmitting(true)
     try {
-      const s = await apiPost<Subject>('/subjects', { name, grade_level: gradeLevel || null })
+      const s = await apiPost<Subject>('/subjects', {
+        name,
+        grade_level: gradeLevel || null,
+        is_core: isCore,
+      })
       setName('')
       setGradeLevel('')
+      setIsCore(true)
       onClose()
       onCreated(s)
     } catch (err) {
@@ -610,6 +617,40 @@ function CreateSubjectModal({
         </Field>
         <Field label="Grade level (optional)">
           <Input placeholder="e.g. O/L, Grade 11" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} />
+        </Field>
+        <Field label="Type">
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="radio"
+                name="subject-type"
+                className="mt-0.5 size-4 shrink-0 accent-indigo-600 dark:accent-indigo-400"
+                checked={isCore}
+                onChange={() => setIsCore(true)}
+              />
+              <span>
+                Core
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  Every student takes it — no assignment needed
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="radio"
+                name="subject-type"
+                className="mt-0.5 size-4 shrink-0 accent-indigo-600 dark:accent-indigo-400"
+                checked={!isCore}
+                onChange={() => setIsCore(false)}
+              />
+              <span>
+                Optional
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  Assigned per student on their detail page
+                </span>
+              </span>
+            </label>
+          </div>
         </Field>
         {error && <Alert>{error}</Alert>}
         <div className="flex justify-end gap-2 pt-2">

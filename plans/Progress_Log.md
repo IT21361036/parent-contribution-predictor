@@ -574,3 +574,29 @@ to the session: new `focus_losses` + `away_seconds` columns on monitoring_sessio
 shown in the Monitoring Sessions table + a "Times left portal" stat. Tab-switch away-time
 already lowers attention via the camera tracker. No fullscreen (per client). tsc + backend
 parse clean. NEEDS: apply the migration to Supabase + restart backend (:8001) + restart Vite.
+
+### Per-student optional subjects (2026-07-30)
+O/L students take ~6 core subjects plus their own electives, so subjects are no
+longer uniform across students. `subjects` gained `is_core` (default **true**, so
+the migration leaves every existing subject visible to everyone) and a new
+`child_subjects` join table holds each student's optional picks.
+
+Enforcement is server-side in `app/services/subject_access.py` — one resolver
+(`allowed_subject_ids` = core ∪ assigned) called from `GET /subjects`, the
+material list/download, and the quiz list/detail/attempt endpoints. Two of those
+had no subject check at all before: `GET /materials/{id}/download` and
+`POST /quizzes/{id}/attempts`, the latter mattering because an attempt on a
+non-assigned subject would have polluted the student's score history and the
+predictor's features. Admins and parents are never filtered.
+
+Admin UI: a new `OptionalSubjectsCard` on `/admin/students/:id` (core shown
+read-only, optionals as checkboxes, one PUT replaces the whole set), plus a
+Core/Optional choice when creating a subject in ContentManager.
+
+Design: `plans/2026-07-30-optional-subjects-design.md` ·
+Plan: `plans/2026-07-30-optional-subjects-plan.md`
+Verified: backend `pytest -q` green (44 passed, 30 of them in
+`test_subject_access.py`), `npm run build` clean. NEEDS: apply
+`app/supabase/migrations/2026-07-30-optional-subjects.sql` to Supabase, then
+restart the backend (:8001) — and walk the feature as admin/child/parent,
+including the DevTools 403 check in Task 11 Step 3 of the plan.

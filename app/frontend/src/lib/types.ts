@@ -21,7 +21,17 @@ export interface Subject {
   id: string
   name: string
   grade_level: string | null
+  // Core subjects are taken by every student; optional ones are assigned
+  // per child by an admin.
+  is_core: boolean
   created_at: string
+}
+
+/** Response of GET /admin/students/{id}/subjects. */
+export interface StudentSubjects {
+  core: Subject[]
+  optional: Subject[]
+  assigned_ids: string[]
 }
 
 export type MaterialType = 'document' | 'video' | 'exam_paper' | 'slide'
