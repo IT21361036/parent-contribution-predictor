@@ -62,3 +62,23 @@ def test_assert_ignores_a_missing_subject_id():
     db = FakeSupabase()
     _seed(db)
     assert_subject_allowed(db, make_user("child", "child-1"), None)
+
+
+def test_child_subject_list_hides_unassigned_optionals(client, fake_db):
+    _seed(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/subjects")
+
+    assert res.status_code == 200
+    assert {s["id"] for s in res.json()} == {"s-maths", "s-science", "s-ict"}
+
+
+def test_admin_subject_list_shows_everything(client, fake_db):
+    _seed(fake_db)
+    # the client fixture defaults to an admin user
+
+    res = client.get("/subjects")
+
+    assert res.status_code == 200
+    assert len(res.json()) == 4

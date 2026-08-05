@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_role
 from app.db.supabase_client import get_service_client
+from app.services.subject_access import allowed_subject_ids
 
 router = APIRouter(prefix="/subjects", tags=["subjects"])
 
@@ -15,10 +16,15 @@ class CreateSubjectRequest(BaseModel):
 
 
 @router.get("")
-def list_subjects(_: CurrentUser = Depends(get_current_user)):
+def list_subjects(user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
-    result = client.table("subjects").select("*").order("name").execute()
-    return result.data
+    subjects = client.table("subjects").select("*").order("name").execute().data or []
+
+    # A child sees the core subjects plus only their own assigned optionals.
+    if user.role == "child":
+        allowed = allowed_subject_ids(client, user.id)
+        subjects = [s for s in subjects if s["id"] in allowed]
+    return subjects
 
 
 @router.post("", status_code=201)
