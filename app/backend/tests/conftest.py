@@ -157,7 +157,7 @@ def fake_db():
 def client(fake_db, monkeypatch):
     """TestClient with the fake DB wired into every router that reads it and a
     settable current user (defaults to an admin)."""
-    for module in ("quizzes", "materials", "report_cards", "parent", "notifications"):
+    for module in ("quizzes", "materials", "report_cards", "parent", "notifications", "subjects", "students"):
         try:
             monkeypatch.setattr(f"app.routers.{module}.get_service_client", lambda: fake_db)
         except AttributeError:
