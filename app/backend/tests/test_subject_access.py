@@ -265,3 +265,54 @@ def test_put_rejects_a_non_child_profile(client, fake_db):
     res = client.put("/admin/students/parent-1/subjects", json={"subject_ids": ["s-art"]})
 
     assert res.status_code == 404
+
+
+def test_new_subjects_are_core_by_default(client, fake_db):
+    res = client.post("/subjects", json={"name": "History"})
+
+    assert res.status_code == 201
+    assert res.json()["is_core"] is True
+
+
+def test_a_subject_can_be_created_as_optional(client, fake_db):
+    res = client.post("/subjects", json={"name": "Music", "is_core": False})
+
+    assert res.status_code == 201
+    assert res.json()["is_core"] is False
+
+
+def test_patch_flips_a_subject_to_optional(client, fake_db):
+    _seed(fake_db)
+
+    res = client.patch("/subjects/s-maths", json={"is_core": False})
+
+    assert res.status_code == 200
+    assert res.json()["is_core"] is False
+
+
+def test_flipping_a_subject_to_core_clears_its_assignments(client, fake_db):
+    _seed(fake_db)
+    assert fake_db.store["child_subjects"]  # s-ict is assigned to child-1
+
+    res = client.patch("/subjects/s-ict", json={"is_core": True})
+
+    assert res.status_code == 200
+    # Core is implicit, so keeping the rows would be meaningless — and they
+    # would silently reappear if the subject were flipped back to optional.
+    assert fake_db.store["child_subjects"] == []
+
+
+def test_patch_with_no_fields_is_rejected(client, fake_db):
+    _seed(fake_db)
+
+    res = client.patch("/subjects/s-maths", json={})
+
+    assert res.status_code == 400
+
+
+def test_patch_of_a_missing_subject_is_404(client, fake_db):
+    _seed(fake_db)
+
+    res = client.patch("/subjects/s-nope", json={"is_core": False})
+
+    assert res.status_code == 404
