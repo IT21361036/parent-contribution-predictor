@@ -192,3 +192,76 @@ def test_child_quiz_list_rejects_unassigned_subject_filter(client, fake_db):
     res = client.get("/quizzes?subject_id=s-art")
 
     assert res.status_code == 403
+
+
+def _seed_children(fake_db: FakeSupabase) -> None:
+    _seed(fake_db)
+    fake_db.store["profiles"] = [
+        {"id": "child-1", "role": "child", "full_name": "Nimal", "email": "n@x.io"},
+        {"id": "parent-1", "role": "parent", "full_name": "Parent", "email": "p@x.io"},
+    ]
+
+
+def test_get_student_subjects_splits_core_and_optional(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.get("/admin/students/child-1/subjects")
+
+    assert res.status_code == 200
+    body = res.json()
+    assert {s["id"] for s in body["core"]} == {"s-maths", "s-science"}
+    assert {s["id"] for s in body["optional"]} == {"s-ict", "s-art"}
+    assert body["assigned_ids"] == ["s-ict"]
+
+
+def test_put_replaces_the_whole_assigned_set(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/child-1/subjects", json={"subject_ids": ["s-art"]})
+
+    assert res.status_code == 200
+    assert res.json()["assigned_ids"] == ["s-art"]
+    rows = fake_db.store["child_subjects"]
+    assert [r["subject_id"] for r in rows] == ["s-art"]
+    assert rows[0]["assigned_by"] == "admin-1"
+
+
+def test_put_can_clear_every_assignment(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/child-1/subjects", json={"subject_ids": []})
+
+    assert res.status_code == 200
+    assert fake_db.store["child_subjects"] == []
+
+
+def test_put_rejects_an_unknown_subject_id(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/child-1/subjects", json={"subject_ids": ["s-nope"]})
+
+    assert res.status_code == 400
+
+
+def test_put_rejects_a_core_subject(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/child-1/subjects", json={"subject_ids": ["s-maths"]})
+
+    assert res.status_code == 400
+
+
+def test_put_rejects_duplicate_ids(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/child-1/subjects", json={"subject_ids": ["s-art", "s-art"]})
+
+    assert res.status_code == 400
+
+
+def test_put_rejects_a_non_child_profile(client, fake_db):
+    _seed_children(fake_db)
+
+    res = client.put("/admin/students/parent-1/subjects", json={"subject_ids": ["s-art"]})
+
+    assert res.status_code == 404
