@@ -138,3 +138,57 @@ def test_admin_material_list_is_never_filtered(client, fake_db):
 
     assert res.status_code == 200
     assert len(res.json()) == 3
+
+
+def _seed_quizzes(fake_db: FakeSupabase) -> None:
+    _seed(fake_db)
+    fake_db.store["quizzes"] = [
+        {"id": "q-maths", "subject_id": "s-maths", "title": "Algebra test", "total_marks": 1},
+        {"id": "q-art", "subject_id": "s-art", "title": "Colour test", "total_marks": 1},
+    ]
+    fake_db.store["quiz_questions"] = [
+        {"id": "qq-1", "quiz_id": "q-art", "question_text": "Primary?",
+         "type": "mcq", "options": ["Red", "Green"], "correct_answer": "Red", "marks": 1},
+    ]
+
+
+def test_child_cannot_open_quiz_of_unassigned_subject(client, fake_db):
+    _seed_quizzes(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/quizzes/q-art")
+
+    assert res.status_code == 403
+
+
+def test_child_cannot_submit_attempt_for_unassigned_subject(client, fake_db):
+    _seed_quizzes(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.post(
+        "/quizzes/q-art/attempts",
+        json={"answers": [{"question_id": "qq-1", "answer": "Red"}]},
+    )
+
+    assert res.status_code == 403
+    # And nothing was recorded against the student.
+    assert fake_db.store.get("quiz_attempts", []) == []
+
+
+def test_unfiltered_quiz_list_excludes_unassigned_subjects(client, fake_db):
+    _seed_quizzes(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/quizzes")
+
+    assert res.status_code == 200
+    assert [q["id"] for q in res.json()] == ["q-maths"]
+
+
+def test_child_quiz_list_rejects_unassigned_subject_filter(client, fake_db):
+    _seed_quizzes(fake_db)
+    client.set_user(make_user("child", "child-1"))
+
+    res = client.get("/quizzes?subject_id=s-art")
+
+    assert res.status_code == 403
