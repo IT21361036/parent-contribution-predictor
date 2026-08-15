@@ -411,6 +411,10 @@ always reports the wrong cause.
 | Pages load but every panel is empty, console says **Failed to fetch** | `VITE_API_URL` is wrong. It must be `http://localhost:8001`. Fix `frontend\.env`, then stop and restart `npm run dev` — Vite only reads .env at startup. |
 | **Invalid API key** / can't log in | A key got mixed up in Step 3. `frontend\.env` takes the **anon** key; `backend\.env` takes the **service_role** key. |
 | Upload fails with **404** | The storage bucket doesn't exist. Revisit 4d. |
+| **`ValidationError: 3 validation errors for Settings`** — supabase_url / service_role_key / jwt_secret "Field required" | No `.env` file, or it's missing values. `.env` is gitignored, so a fresh clone never has one — you must create it from `.env.example` (Step 3). Needs a real Supabase project first (Step 2). |
+| Same error **even though `.env` exists** | You're in the wrong folder. `config.py` loads `env_file=".env"` **relative to your current directory**, so every backend command must run from `app\backend` — not the repo root. |
+| `create_admin.py` fails with a **relation/table error** | The schema hasn't been run. Do Step 4 first — the script writes a `profiles` row, and that table has to exist. |
+| `create_admin.py` returns a **422 / weak-password error** | Supabase enforces a password minimum. Use something longer and mixed-case, not `admin1234`. |
 | `pip install` fails with **"conflicting dependencies"** naming `httpx` and `supabase` | Your `requirements.txt` is out of date. It must pin `httpx==0.27.2`, not `0.28.1` — `supabase 2.10.0` requires `httpx>=0.26,<0.28`, so any 0.28+ pin makes the install unresolvable. Pull the latest code, or edit that one line and re-run. |
 | `Activate.ps1 cannot be loaded` | Run the `Set-ExecutionPolicy` command in Step 5. |
 | `'python'`/`'npm'` **is not recognized** | Step 0 didn't finish, or the terminal predates the install. Close every terminal, open a fresh one, try again. |
