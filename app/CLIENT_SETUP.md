@@ -395,7 +395,68 @@ something is misconfigured you'll find out here rather than later.
    coexist) → they see the core subject plus the one you assigned, and nothing
    else.
 
-If all six pass, the setup is complete.
+If all six pass, the install is correct. The app now works — but the **Insights**
+and **Risk Predictions** charts will still be blank, because nothing has put any
+grades in the database yet. Step 8 fixes that.
+
+---
+
+## Step 8 — Demo data (required for the charts)
+
+**Do this if the Insights or Risk Predictions screens look empty.** They will
+be, on a fresh project — and creating users, subjects, materials and quizzes
+through the portal does **not** fill them.
+
+Two tables drive those screens, `academic_records` (term grades) and
+`engagement_index` (the parental engagement score). Nothing in the app UI ever
+writes to either one: there is no screen for entering a student's term grades,
+and the engagement score is only computed once a parent has actually run
+monitoring sessions. The seed script below is the only thing that fills them.
+
+Run both commands from `app\backend` with the venv active (`(.venv)` in your
+prompt):
+
+```powershell
+cd C:\Projects\client01\app\backend
+.venv\Scripts\Activate.ps1
+
+# 1. Grades + engagement scores for the child accounts you already created
+python -m app.scripts.seed_demo
+
+# 2. Twelve simulated students, so the Insights scatter has a visible trend
+python -m app.scripts.seed_demo --cohort 12
+```
+
+Then log in as admin → **Risk Predictions** → **Run predictions**. That fills
+the risk bands and colours the Insights dots green/amber/red.
+
+**Order matters for the first command.** It only touches child accounts that
+already exist, so run it *after* Step 7. If you run it on an empty project it
+prints `No child accounts found — create some children first, then re-run.` and
+does nothing — easy to miss, and the charts stay empty.
+
+**Why the second command is separate.** The Insights chart needs at least **two**
+students carrying both a grade and an engagement score, and a correlation only
+looks like anything with a dozen. `--cohort 12` creates
+`demo.student.01…12@ol-demo.local` for exactly that purpose — the chart labels
+itself "simulated cohort" because these are the students it means. Skip it and
+Insights shows *"Not enough data yet"* no matter how much else you've entered.
+
+Both commands are safe to re-run. `python -m app.scripts.seed_demo --clear`
+removes everything they added, including the twelve demo accounts. Only run any
+of this on a demo or test project — never on a database holding real student
+records.
+
+### Checking what the charts can see
+
+If a chart is still empty, this prints exactly which students qualify and which
+are missing an axis. It only reads, so it's safe anywhere:
+
+```powershell
+python -m app.scripts.diagnose_insights
+```
+
+The last line tells you whether the data is the problem or something else is.
 
 ---
 
@@ -409,6 +470,8 @@ always reports the wrong cause.
 | **CORS policy / No 'Access-Control-Allow-Origin'** | Almost never a CORS problem. The backend crashed on that request; the error headers get lost on the way out. Look at the backend window for a red traceback and fix that. |
 | **Could not find the 'X' column ... in the schema cache** (`PGRST204`) | A migration from Step 4b didn't run, or the cache is stale. Re-run the migration, then `notify pgrst, 'reload schema';`. |
 | Pages load but every panel is empty, console says **Failed to fetch** | `VITE_API_URL` is wrong. It must be `http://localhost:8001`. Fix `frontend\.env`, then stop and restart `npm run dev` — Vite only reads .env at startup. |
+| **Insights** says *"Not enough data yet"* — even with plenty of users, subjects and quizzes | Expected, and not a bug. That chart reads `academic_records` and `engagement_index`, and **no screen in the portal writes to either**. Run Step 8, both commands. `python -m app.scripts.diagnose_insights` names the students that qualify and what each is missing. |
+| **Risk Predictions** roster is empty or every band is blank | No child accounts, or predictions were never run. Create children, run Step 8, then **Risk Predictions → Run predictions**. |
 | **Invalid API key** / can't log in | A key got mixed up in Step 3. `frontend\.env` takes the **anon** key; `backend\.env` takes the **service_role** key. |
 | Upload fails with **404** | The storage bucket doesn't exist. Revisit 4d. |
 | **`ValidationError: 3 validation errors for Settings`** — supabase_url / service_role_key / jwt_secret "Field required" | No `.env` file, or it's missing values. `.env` is gitignored, so a fresh clone never has one — you must create it from `.env.example` (Step 3). Needs a real Supabase project first (Step 2). |
@@ -443,17 +506,3 @@ npm run dev
 ```
 
 Then open http://localhost:5173.
-
----
-
-## Optional — demo data
-
-To populate charts and risk predictions for demos, with the backend venv active:
-
-```powershell
-cd C:\Projects\client01\app\backend
-python -m app.scripts.seed_demo
-```
-
-It's safe to re-run, and `--clear` removes what it added. Only do this on a demo
-or test project — not on a database holding real student records.
