@@ -7,9 +7,12 @@ import {
   Download,
   FileQuestion,
   FileText,
+  Lock,
+  Pencil,
   Plus,
   Presentation,
   Search,
+  Trash2,
   Upload,
   Users,
   Video,
@@ -27,7 +30,8 @@ import { Alert } from '../../components/ui/Alert'
 import { Spinner } from '../../components/ui/Spinner'
 import { BarsChart } from '../../components/charts/BarsChart'
 import { useToast } from '../../contexts/ToastContext'
-import { apiGet, apiPost, apiUpload } from '../../lib/api'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut, apiUpload } from '../../lib/api'
 import { Pagination, usePagination } from '../../components/ui/Pagination'
 import type {
   LearningMaterial,
@@ -58,8 +62,14 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [subjectModalOpen, setSubjectModalOpen] = useState(false)
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [deletingSubject, setDeletingSubject] = useState<Subject | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [quizModalOpen, setQuizModalOpen] = useState(false)
+  const [editingQuiz, setEditingQuiz] = useState<QuizWithQuestions | null>(null)
+  const [editingQuizAttempts, setEditingQuizAttempts] = useState(0)
+  const [deletingQuiz, setDeletingQuiz] = useState<Quiz | null>(null)
+  const [busy, setBusy] = useState(false)
   const [viewQuiz, setViewQuiz] = useState<QuizWithQuestions | null>(null)
   const [resultsQuiz, setResultsQuiz] = useState<Quiz | null>(null)
   const [materialSearch, setMaterialSearch] = useState('')
@@ -118,6 +128,52 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
     }
   }
 
+  // The list row carries only quiz metadata; the editor needs the questions too.
+  async function openQuizEditor(quiz: Quiz) {
+    try {
+      setEditingQuizAttempts(quiz.attempt_count ?? 0)
+      setEditingQuiz(await apiGet<QuizWithQuestions>(`/quizzes/${quiz.id}`))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load quiz')
+    }
+  }
+
+  // Both deletes are refused by the API when something depends on the row. The
+  // 409 detail names what is in the way, so surface it verbatim rather than a
+  // generic "delete failed" — it is the only thing that tells the admin what to
+  // do next.
+  async function confirmDeleteSubject() {
+    if (!deletingSubject) return
+    setBusy(true)
+    try {
+      await apiDelete(`/subjects/${deletingSubject.id}`)
+      toast.success(`Deleted "${deletingSubject.name}"`)
+      setDeletingSubject(null)
+      if (subjectId === deletingSubject.id) setSubjectId('')
+      await refreshSubjects()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete subject')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function confirmDeleteQuiz() {
+    if (!deletingQuiz) return
+    setBusy(true)
+    try {
+      await apiDelete(`/quizzes/${deletingQuiz.id}`)
+      toast.success(`Deleted "${deletingQuiz.title}"`)
+      setDeletingQuiz(null)
+      refreshContent(subjectId)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete quiz')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const selectedSubject = subjects.find((s) => s.id === subjectId) ?? null
   const totalAttempts = quizzes.reduce((sum, q) => sum + (q.attempt_count ?? 0), 0)
   const totalMarks = quizzes.reduce((sum, q) => sum + (q.total_marks ?? 0), 0)
 
@@ -151,6 +207,24 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
               </Select>
             </Field>
           </div>
+          {selectedSubject && (
+            <>
+              <Button
+                variant="secondary"
+                icon={<Pencil className="size-4" />}
+                onClick={() => setEditingSubject(selectedSubject)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="danger"
+                icon={<Trash2 className="size-4" />}
+                onClick={() => setDeletingSubject(selectedSubject)}
+              >
+                Delete
+              </Button>
+            </>
+          )}
           <Button variant="secondary" icon={<Plus className="size-4" />} onClick={() => setSubjectModalOpen(true)}>
             New subject
           </Button>
@@ -295,6 +369,20 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
                           >
                             Results
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Pencil className="size-4" />}
+                            onClick={() => openQuizEditor(q)}
+                            aria-label={`Edit ${q.title}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 className="size-4" />}
+                            onClick={() => setDeletingQuiz(q)}
+                            aria-label={`Delete ${q.title}`}
+                          />
                         </div>
                       </li>
                     ))}
@@ -317,14 +405,34 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
         </>
       )}
 
-      <CreateSubjectModal
+      <SubjectModal
         open={subjectModalOpen}
         onClose={() => setSubjectModalOpen(false)}
-        onCreated={async (s) => {
+        onSaved={async (s) => {
           await refreshSubjects()
           setSubjectId(s.id)
           toast.success('Subject created')
         }}
+      />
+      <SubjectModal
+        open={!!editingSubject}
+        subject={editingSubject}
+        onClose={() => setEditingSubject(null)}
+        onSaved={async () => {
+          await refreshSubjects()
+          toast.success('Subject updated')
+        }}
+      />
+      <ConfirmDialog
+        open={!!deletingSubject}
+        onClose={() => setDeletingSubject(null)}
+        onConfirm={confirmDeleteSubject}
+        loading={busy}
+        title="Delete subject"
+        description={
+          `Delete "${deletingSubject?.name ?? ''}"? This is refused if any material, quiz or ` +
+          'academic record still uses it.'
+        }
       />
       {subjectId && (
         <>
@@ -337,17 +445,39 @@ export function ContentManager({ section }: { section: 'materials' | 'quizzes' }
               toast.success('Material uploaded')
             }}
           />
-          <CreateQuizModal
+          <QuizModal
             open={quizModalOpen}
             subjectId={subjectId}
             onClose={() => setQuizModalOpen(false)}
-            onCreated={() => {
+            onSaved={() => {
               refreshContent(subjectId)
               toast.success('Quiz created')
             }}
           />
         </>
       )}
+      <QuizModal
+        open={!!editingQuiz}
+        subjectId={subjectId}
+        quiz={editingQuiz}
+        attemptCount={editingQuizAttempts}
+        onClose={() => setEditingQuiz(null)}
+        onSaved={() => {
+          refreshContent(subjectId)
+          toast.success('Quiz updated')
+        }}
+      />
+      <ConfirmDialog
+        open={!!deletingQuiz}
+        onClose={() => setDeletingQuiz(null)}
+        onConfirm={confirmDeleteQuiz}
+        loading={busy}
+        title="Delete quiz"
+        description={
+          `Delete "${deletingQuiz?.title ?? ''}"? This is refused once any student has ` +
+          'attempted it, so recorded results can never be lost this way.'
+        }
+      />
       <ViewQuizModal quiz={viewQuiz} onClose={() => setViewQuiz(null)} />
       <QuizResultsModal quiz={resultsQuiz} onClose={() => setResultsQuiz(null)} />
     </>
@@ -572,45 +702,56 @@ function GradeAttemptModal({
   )
 }
 
-function CreateSubjectModal({
+// One modal for both creating and editing a subject — the form is identical, so
+// a second near-copy would only be a place for the two to drift apart.
+function SubjectModal({
   open,
+  subject = null,
   onClose,
-  onCreated,
+  onSaved,
 }: {
   open: boolean
+  subject?: Subject | null
   onClose: () => void
-  onCreated: (s: Subject) => void
+  onSaved: (s: Subject) => void
 }) {
+  const isEdit = !!subject
   const [name, setName] = useState('')
   const [gradeLevel, setGradeLevel] = useState('')
   const [isCore, setIsCore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Re-seed the fields whenever the modal opens, so an edit starts from the
+  // current values and a create always starts blank.
+  useEffect(() => {
+    if (!open) return
+    setName(subject?.name ?? '')
+    setGradeLevel(subject?.grade_level ?? '')
+    setIsCore(subject?.is_core ?? true)
+    setError(null)
+  }, [open, subject])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      const s = await apiPost<Subject>('/subjects', {
-        name,
-        grade_level: gradeLevel || null,
-        is_core: isCore,
-      })
-      setName('')
-      setGradeLevel('')
-      setIsCore(true)
+      const payload = { name, grade_level: gradeLevel || null, is_core: isCore }
+      const s = isEdit
+        ? await apiPatch<Subject>(`/subjects/${subject!.id}`, payload)
+        : await apiPost<Subject>('/subjects', payload)
       onClose()
-      onCreated(s)
+      onSaved(s)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create subject')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} subject`)
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="New subject">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit subject' : 'New subject'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Name">
           <Input value={name} onChange={(e) => setName(e.target.value)} required />
@@ -658,7 +799,7 @@ function CreateSubjectModal({
             Cancel
           </Button>
           <Button type="submit" loading={submitting}>
-            Create
+            {isEdit ? 'Save changes' : 'Create'}
           </Button>
         </div>
       </form>
@@ -767,22 +908,60 @@ function emptyQuestion(): QuizQuestionInput {
   return { question_text: '', type: 'mcq', options: ['', ''], correct_answer: '', marks: 1 }
 }
 
-function CreateQuizModal({
+// `datetime-local` needs "YYYY-MM-DDTHH:mm" in local time, not the ISO string
+// with an offset that the API returns.
+function toDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// Create and edit share this modal. In edit mode the metadata stays editable
+// forever, but the question editor locks once anyone has attempted the quiz —
+// stored attempts snapshot max_score and index their marks by question id, so
+// rewriting the paper underneath them would silently invalidate real results.
+function QuizModal({
   open,
   subjectId,
+  quiz = null,
+  attemptCount = 0,
   onClose,
-  onCreated,
+  onSaved,
 }: {
   open: boolean
   subjectId: string
+  quiz?: QuizWithQuestions | null
+  attemptCount?: number
   onClose: () => void
-  onCreated: () => void
+  onSaved: () => void
 }) {
+  const isEdit = !!quiz
+  const questionsLocked = isEdit && attemptCount > 0
   const [title, setTitle] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([emptyQuestion()])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setTitle(quiz?.title ?? '')
+    setDueDate(toDateTimeLocal(quiz?.due_date))
+    setQuestions(
+      quiz?.questions?.length
+        ? quiz.questions.map((q) => ({
+            question_text: q.question_text,
+            type: q.type,
+            options: q.options ?? (q.type === 'mcq' ? ['', ''] : null),
+            correct_answer: q.correct_answer ?? '',
+            marks: q.marks,
+          }))
+        : [emptyQuestion()]
+    )
+  }, [open, quiz])
 
   function updateQuestion(index: number, patch: Partial<QuizQuestionInput>) {
     setQuestions((qs) => qs.map((q, i) => (i === index ? { ...q, ...patch } : q)))
@@ -808,12 +987,6 @@ function CreateQuizModal({
     updateQuestion(index, { type, options: type === 'mcq' ? ['', ''] : null, correct_answer: '' })
   }
 
-  function reset() {
-    setTitle('')
-    setDueDate('')
-    setQuestions([emptyQuestion()])
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -823,24 +996,29 @@ function CreateQuizModal({
         ...q,
         options: q.type === 'mcq' ? (q.options ?? []).filter((o) => o.trim() !== '') : null,
       }))
-      await apiPost('/quizzes', {
-        title,
-        subject_id: subjectId,
-        questions: cleaned,
-        due_date: dueDate ? new Date(dueDate).toISOString() : null,
-      })
-      reset()
+      const due_date = dueDate ? new Date(dueDate).toISOString() : null
+
+      if (isEdit) {
+        await apiPatch(`/quizzes/${quiz!.id}`, { title, due_date })
+        // Only touch the paper when it is still editable — the API refuses it
+        // anyway, and sending it would turn a successful rename into an error.
+        if (!questionsLocked) {
+          await apiPut(`/quizzes/${quiz!.id}/questions`, { questions: cleaned })
+        }
+      } else {
+        await apiPost('/quizzes', { title, subject_id: subjectId, questions: cleaned, due_date })
+      }
       onClose()
-      onCreated()
+      onSaved()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create quiz')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} quiz`)
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Create quiz" size="lg">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit quiz' : 'Create quiz'} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Quiz title">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -850,6 +1028,20 @@ function CreateQuizModal({
           <Input type="datetime-local" className="dark:[color-scheme:dark]" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </Field>
 
+        {questionsLocked && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+            <Lock className="size-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-sm text-amber-900 dark:text-amber-200">
+              <span className="font-medium">Questions are locked.</span>{' '}
+              {attemptCount} student attempt{attemptCount === 1 ? ' has' : 's have'} already been
+              recorded against this quiz, and their marks are stored out of the current total.
+              Changing the questions would make those results meaningless. The title and due date
+              are still editable — to change the questions, create a new quiz.
+            </p>
+          </div>
+        )}
+
+        <fieldset disabled={questionsLocked} className={questionsLocked ? 'opacity-60' : undefined}>
         <div className="space-y-4">
           {questions.map((q, qIndex) => (
             <div key={qIndex} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3 bg-slate-50/60 dark:bg-slate-800/40">
@@ -944,6 +1136,7 @@ function CreateQuizModal({
         >
           + Add another question
         </button>
+        </fieldset>
 
         {error && <Alert>{error}</Alert>}
 
@@ -952,7 +1145,7 @@ function CreateQuizModal({
             Cancel
           </Button>
           <Button type="submit" loading={submitting}>
-            Create quiz
+            {isEdit ? 'Save changes' : 'Create quiz'}
           </Button>
         </div>
       </form>

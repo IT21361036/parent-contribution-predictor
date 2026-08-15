@@ -47,6 +47,42 @@ class GradeAttemptRequest(BaseModel):
     grades: list[QuestionGrade]
 
 
+class UpdateQuizRequest(BaseModel):
+    """Quiz metadata only — none of it invalidates an existing attempt, so this
+    stays editable for the life of the quiz."""
+
+    title: str | None = None
+    subject_id: str | None = None
+    due_date: str | None = None
+
+
+class ReplaceQuestionsRequest(BaseModel):
+    questions: list[QuestionInput]
+
+
+def _validate_questions(questions: list[QuestionInput]) -> None:
+    """Shared by create and replace so the two paths cannot drift apart."""
+    if not questions:
+        raise HTTPException(status_code=400, detail="A quiz needs at least one question")
+    for q in questions:
+        if q.type not in QUESTION_TYPES:
+            raise HTTPException(status_code=400, detail=f"question type must be one of {sorted(QUESTION_TYPES)}")
+        if q.type == "mcq" and (not q.options or not q.correct_answer):
+            raise HTTPException(status_code=400, detail="MCQ questions need options and a correct_answer")
+
+
+def _attempt_count(client, quiz_id: str) -> int:
+    rows = client.table("quiz_attempts").select("id").eq("quiz_id", quiz_id).execute().data or []
+    return len(rows)
+
+
+def _get_quiz_or_404(client, quiz_id: str) -> dict:
+    quiz = client.table("quizzes").select("*").eq("id", quiz_id).maybe_single().execute().data
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
+
+
 @router.get("")
 def list_quizzes(subject_id: str | None = None, user: CurrentUser = Depends(get_current_user)):
     client = get_service_client()
@@ -280,13 +316,7 @@ def grade_attempt(
 
 @router.post("", status_code=201)
 def create_quiz(body: CreateQuizRequest, user: CurrentUser = Depends(require_content_author)):
-    if not body.questions:
-        raise HTTPException(status_code=400, detail="A quiz needs at least one question")
-    for q in body.questions:
-        if q.type not in QUESTION_TYPES:
-            raise HTTPException(status_code=400, detail=f"question type must be one of {sorted(QUESTION_TYPES)}")
-        if q.type == "mcq" and (not q.options or not q.correct_answer):
-            raise HTTPException(status_code=400, detail="MCQ questions need options and a correct_answer")
+    _validate_questions(body.questions)
 
     client = get_service_client()
     total_marks = sum(q.marks for q in body.questions)
@@ -326,3 +356,104 @@ def create_quiz(body: CreateQuizRequest, user: CurrentUser = Depends(require_con
     )
 
     return {**quiz, "questions": questions}
+
+
+# --- Editing an existing quiz --------------------------------------------------
+# Split by blast radius. Metadata never invalidates a submitted attempt, so it
+# stays editable forever. Questions and deletion do: `quiz_attempts` snapshots
+# `max_score` and keys `question_scores` by question id, so changing the paper
+# after a sitting leaves stored marks scored out of a total that no longer
+# exists, against questions that no longer exist — and those attempts feed the
+# performance predictor. Hence the hard 409 rather than a confirmation dialog.
+
+
+@router.patch("/{quiz_id}")
+def update_quiz(
+    quiz_id: str, body: UpdateQuizRequest, _: CurrentUser = Depends(require_content_author)
+):
+    """Rename a quiz, move it to another subject, or change its due date.
+
+    Always permitted, including after students have attempted it. Uses
+    exclude_unset (not a None-filter) so `due_date` can be explicitly cleared,
+    matching PATCH /subjects/{id}.
+    """
+    client = get_service_client()
+    _get_quiz_or_404(client, quiz_id)
+
+    changes = body.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    return client.table("quizzes").update(changes).eq("id", quiz_id).execute().data[0]
+
+
+@router.put("/{quiz_id}/questions")
+def replace_questions(
+    quiz_id: str, body: ReplaceQuestionsRequest, _: CurrentUser = Depends(require_content_author)
+):
+    """Replace the whole question set and recompute total_marks.
+
+    Refused once any attempt exists — see the note above.
+    """
+    client = get_service_client()
+    _get_quiz_or_404(client, quiz_id)
+    _validate_questions(body.questions)
+
+    attempts = _attempt_count(client, quiz_id)
+    if attempts:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot change the questions: {attempts} student attempt(s) already exist and "
+                "their marks would no longer match this quiz. Create a new quiz instead."
+            ),
+        )
+
+    total_marks = sum(q.marks for q in body.questions)
+    client.table("quiz_questions").delete().eq("quiz_id", quiz_id).execute()
+    questions = (
+        client.table("quiz_questions")
+        .insert(
+            [
+                {
+                    "quiz_id": quiz_id,
+                    "question_text": q.question_text,
+                    "type": q.type,
+                    "options": q.options,
+                    "correct_answer": q.correct_answer,
+                    "marks": q.marks,
+                }
+                for q in body.questions
+            ]
+        )
+        .execute()
+        .data
+    )
+    quiz = client.table("quizzes").update({"total_marks": total_marks}).eq("id", quiz_id).execute().data[0]
+    return {**quiz, "questions": questions}
+
+
+@router.delete("/{quiz_id}")
+def delete_quiz(quiz_id: str, _: CurrentUser = Depends(require_content_author)):
+    """Delete a quiz and its questions. Refused once any attempt exists — the
+    attempts FK has no ON DELETE rule, so this would otherwise surface as a raw
+    foreign-key 500, and deleting graded work is not recoverable.
+    """
+    client = get_service_client()
+    quiz = _get_quiz_or_404(client, quiz_id)
+
+    attempts = _attempt_count(client, quiz_id)
+    if attempts:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete '{quiz['title']}': {attempts} student attempt(s) are recorded "
+                "against it. Their results would be lost."
+            ),
+        )
+
+    # quiz_questions cascades in Postgres; delete explicitly so the fake-client
+    # test path reaches the same end state as production.
+    client.table("quiz_questions").delete().eq("quiz_id", quiz_id).execute()
+    client.table("quizzes").delete().eq("id", quiz_id).execute()
+    return {"deleted": quiz_id}

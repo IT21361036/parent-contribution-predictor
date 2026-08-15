@@ -317,6 +317,8 @@ role · **P+A** = parent or admin.
 |---|---|---|
 | GET `/subjects` | any | List subjects. |
 | POST `/subjects` | admin | Create a subject. |
+| PATCH `/subjects/{id}` | admin | Rename, re-grade, or flip core/optional (flipping to core clears its `child_subjects` rows). |
+| DELETE `/subjects/{id}` | admin | Delete a subject. **409** when any material, quiz or academic record still references it — the message names the counts. |
 | GET `/materials` | any | List materials (optional subject filter). |
 | POST `/materials` | admin | Upload a material file. |
 | GET `/materials/{id}/download` | any | Signed URL (graceful 404 if the file is missing). |
@@ -331,6 +333,18 @@ role · **P+A** = parent or admin.
 | POST `/quizzes/{id}/attempts` | child | Submit answers; MCQs auto-graded. |
 | POST `/quizzes/attempts/{id}/grade` | admin | Award short-answer marks; recompute score. |
 | POST `/quizzes` | admin | Create a quiz + questions. |
+| PATCH `/quizzes/{id}` | admin | Title / subject / due date. Always allowed — none of it invalidates a submitted attempt. |
+| PUT `/quizzes/{id}/questions` | admin | Replace the question set, recompute `total_marks`. **409** once any attempt exists. |
+| DELETE `/quizzes/{id}` | admin | Delete a quiz + its questions. **409** once any attempt exists. |
+
+> **Why the two 409s.** `quiz_attempts` snapshots `max_score` and keys
+> `question_scores` by question id. Rewriting the paper after a sitting would
+> leave stored marks scored out of a total that no longer exists, against
+> questions that no longer exist — and those attempts feed the performance
+> predictor. Both guards count references in application code rather than
+> letting Postgres raise a foreign-key error: it gives the admin a message that
+> says what to do next, and it is the only version the test suite can exercise
+> (the in-memory fake client enforces no constraints).
 
 **Activity / Parent**
 | Method · Path | Guard | Description |

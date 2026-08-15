@@ -322,6 +322,7 @@ export default function ParentDashboard() {
       {section === 'notifications' ? (
         <NotificationsSection
           items={notifications}
+          linkedChildren={children}
           unread={unread}
           onOpen={openNotification}
           onMarkAll={markAllRead}
@@ -857,20 +858,45 @@ function formatDuration(startedAt: string, endedAt: string | null): string {
 
 function NotificationsSection({
   items,
+  linkedChildren,
   unread,
   onOpen,
   onMarkAll,
 }: {
   items: AppNotification[]
+  linkedChildren: LinkedChild[]
   unread: number
   onOpen: (n: AppNotification) => void
   onMarkAll: () => void
 }) {
-  const { page, setPage, totalPages, pageItems } = usePagination(items, 8)
+  // A parent of one child gains nothing from a one-chip filter, so the whole
+  // control disappears for them. It only earns its space with siblings, where
+  // every notification otherwise has to be read to find whose it is.
+  const multiChild = linkedChildren.length > 1
+  const [childFilter, setChildFilter] = useState<string | null>(null)
+
+  const nameOf = (childId: string | null) =>
+    linkedChildren.find((c) => c.child_id === childId)?.full_name ?? null
+
+  // Chip labels carry the unread count per child — the number that decides
+  // where a parent looks first.
+  const chipLabels = Object.fromEntries(
+    linkedChildren.map((c) => {
+      const n = items.filter((i) => i.child_id === c.child_id && !i.read_at).length
+      return [c.child_id, `${c.full_name ?? 'Child'}${n ? ` (${n})` : ''}`]
+    })
+  )
+
+  const filtered = childFilter ? items.filter((n) => n.child_id === childFilter) : items
+  const { page, setPage, totalPages, pageItems } = usePagination(filtered, 8)
+
+  const description = unread > 0 ? `${unread} unread` : 'All caught up'
   return (
     <Card
       title="Notifications"
-      description={unread > 0 ? `${unread} unread` : 'All caught up'}
+      description={
+        childFilter ? `${description} · showing ${nameOf(childFilter) ?? 'one child'}` : description
+      }
       actions={
         unread > 0 ? (
           <Button variant="ghost" size="sm" onClick={onMarkAll}>
@@ -879,11 +905,25 @@ function NotificationsSection({
         ) : undefined
       }
     >
-      {items.length === 0 ? (
+      {multiChild && (
+        <div className="mb-3">
+          <FilterChips
+            options={linkedChildren.map((c) => c.child_id)}
+            active={childFilter}
+            onChange={setChildFilter}
+            labels={chipLabels}
+          />
+        </div>
+      )}
+      {filtered.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title="No notifications yet"
-          description="Quiz results, due-quiz reminders, report cards and risk alerts will appear here."
+          title={items.length === 0 ? 'No notifications yet' : 'Nothing for this child'}
+          description={
+            items.length === 0
+              ? 'Quiz results, due-quiz reminders, report cards and risk alerts will appear here.'
+              : 'Clear the filter above to see notifications about your other children.'
+          }
         />
       ) : (
         <>
@@ -904,9 +944,12 @@ function NotificationsSection({
                     <Icon className="size-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 flex-wrap">
                       {n.title}
                       {isUnread && <span className="size-2 rounded-full bg-red-500 shrink-0" aria-label="unread" />}
+                      {/* Whose notification this is, without having to read the
+                          sentence — only useful when there are siblings. */}
+                      {multiChild && nameOf(n.child_id) && <Badge>{nameOf(n.child_id)}</Badge>}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-300">{n.body}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">

@@ -257,11 +257,12 @@
       <tr><td>GET /profiles/me</td><td>any</td><td>Caller's own profile.</td></tr>
       <tr><td>GET·POST /admin/users, PATCH·DELETE /admin/users/{id}</td><td>admin</td><td>List / create / update / delete accounts (blocks self-delete; cascades data).</td></tr>
       <tr><td>POST·GET /admin/links, DELETE /admin/links/{id}</td><td>admin</td><td>Create / list / remove parent-child links.</td></tr>
-      <tr><td>GET /subjects · POST /subjects</td><td>any · admin</td><td>List / create subjects.</td></tr>
+      <tr><td>GET /subjects · POST /subjects · PATCH /subjects/{id} · DELETE /subjects/{id}</td><td>any · admin</td><td>List / create / edit / delete subjects. Delete returns 409 when a material, quiz or academic record still references the subject.</td></tr>
       <tr><td>GET /materials · POST /materials · GET /materials/{id}/download</td><td>any · admin · any</td><td>List / upload / signed-URL download (graceful 404).</td></tr>
       <tr><td>GET /quizzes · GET /quizzes/{id}</td><td>any</td><td>List quizzes / one quiz (answer key stripped for children).</td></tr>
       <tr><td>GET /quizzes/attempts/me · POST /quizzes/{id}/attempts</td><td>child</td><td>Own attempts / submit (MCQs auto-graded).</td></tr>
       <tr><td>GET /quizzes/{id}/attempts · POST /quizzes/attempts/{id}/grade · POST /quizzes</td><td>admin</td><td>View attempts / grade short answers / create quiz.</td></tr>
+      <tr><td>PATCH /quizzes/{id} · PUT /quizzes/{id}/questions · DELETE /quizzes/{id}</td><td>admin</td><td>Edit title/subject/due date (always allowed) · replace questions or delete the quiz (both 409 once any attempt exists, so recorded marks can never be invalidated).</td></tr>
       <tr><td>GET /activity/me · POST /activity</td><td>child</td><td>Own log / log an event.</td></tr>
       <tr><td>GET /parent/children, .../{id}/activity, .../{id}/quiz-attempts</td><td>parent</td><td>Linked children &amp; their data (asserts link).</td></tr>
       <tr><td>GET /parent/sessions · /parent/attention-history</td><td>parent</td><td>Monitoring sessions &amp; attention scores.</td></tr>
