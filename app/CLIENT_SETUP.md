@@ -407,11 +407,20 @@ grades in the database yet. Step 8 fixes that.
 be, on a fresh project — and creating users, subjects, materials and quizzes
 through the portal does **not** fill them.
 
-Two tables drive those screens, `academic_records` (term grades) and
-`engagement_index` (the parental engagement score). Nothing in the app UI ever
-writes to either one: there is no screen for entering a student's term grades,
-and the engagement score is only computed once a parent has actually run
-monitoring sessions. The seed script below is the only thing that fills them.
+Two tables drive those screens, and they behave differently:
+
+* **`engagement_index`** (the parental engagement score) *is* written by the app
+  — it's computed from real monitoring sessions the first time a parent's
+  dashboard loads the engagement panel. This axis fills in on its own once
+  parents use the portal.
+* **`academic_records`** (term grades) is entered by hand, per student:
+  **Users → open a student → Academic records → Add term**. Nothing fills it
+  automatically, so on a fresh database this axis stays empty until someone
+  either enters real grades or seeds demo ones.
+
+So the usual symptom on a live setup is engagement present, grades at zero — and
+the chart needs both. For a real deployment, enter real grades on each student's
+page; the seed below is only for demos.
 
 Run both commands from `app\backend` with the venv active (`(.venv)` in your
 prompt):

@@ -373,6 +373,16 @@ role · **P+A** = parent or admin.
 | GET `/admin/students/{id}` | admin | Per-student aggregate view. |
 | GET `/admin/students/{id}/notes` | admin | Intervention notes. |
 | POST `/admin/students/{id}/notes` | admin | Add an intervention note. |
+| POST `/admin/students/{id}/grades` | admin | Record a term's assessment / exam / attendance. **409** on a duplicate term for that student. |
+| PATCH `/admin/students/{id}/grades/{record_id}` | admin | Edit one record. A single score can be cleared to null, but not every score at once. |
+| DELETE `/admin/students/{id}/grades/{record_id}` | admin | Remove a record. |
+
+> `academic_records` is the performance axis of the Insights scatter and a
+> direct feature of the risk model, and until these routes existed nothing in
+> the application could write it — grades could only be seeded or inserted by
+> hand in SQL. Percentages are range-checked at the edge because a typo'd 850
+> would quietly skew both the cohort correlation and the model's inputs.
+
 | GET `/admin/analytics/engagement-performance` | admin | Engagement-vs-performance scatter + Pearson `r`. |
 
 **Notifications / Report cards**

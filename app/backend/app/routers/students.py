@@ -26,6 +26,26 @@ class AssignSubjectsRequest(BaseModel):
     subject_ids: list[str]
 
 
+class GradeRecordRequest(BaseModel):
+    """One term's academic record. Every score is optional so a school can enter
+    assessment marks before exams are sat, but a row with nothing in it is
+    rejected — it would only pollute the analytics mean."""
+
+    term: str
+    subject_id: str | None = None
+    assessment_score: float | None = None
+    exam_score: float | None = None
+    attendance_pct: float | None = None
+
+
+class GradeUpdateRequest(BaseModel):
+    term: str | None = None
+    subject_id: str | None = None
+    assessment_score: float | None = None
+    exam_score: float | None = None
+    attendance_pct: float | None = None
+
+
 def _get_child_or_404(client, child_id: str) -> dict:
     """Fetch a profile and confirm it is a child; 404 otherwise.
 
@@ -224,3 +244,121 @@ def set_student_subjects(
             ]
         ).execute()
     return {"assigned_ids": ids}
+
+
+# --- Term grades (academic_records) --------------------------------------------
+# This is the performance axis of the Insights scatter and a direct input to the
+# risk predictor, and until now nothing in the app could write it — grades could
+# only be seeded or inserted by hand. Admin-only, like every other write here.
+
+_SCORE_FIELDS = ("assessment_score", "exam_score", "attendance_pct")
+
+
+def _validate_scores(values: dict) -> None:
+    """Percentages must be percentages. A typo'd 850 would quietly skew both the
+    cohort correlation and the model's features, so reject it at the edge."""
+    for field in _SCORE_FIELDS:
+        v = values.get(field)
+        if v is not None and not (0 <= v <= 100):
+            raise HTTPException(status_code=400, detail=f"{field} must be between 0 and 100")
+
+
+def _get_record_or_404(client, child_id: str, record_id: str) -> dict:
+    row = (
+        client.table("academic_records")
+        .select("*")
+        .eq("id", record_id)
+        .maybe_single()
+        .execute()
+        .data
+    )
+    # Check ownership too: a record id alone must not let one student's row be
+    # edited through another student's URL.
+    if not row or row["child_id"] != child_id:
+        raise HTTPException(status_code=404, detail="Academic record not found")
+    return row
+
+
+@router.post("/{child_id}/grades", status_code=status.HTTP_201_CREATED)
+def create_grade(child_id: str, body: GradeRecordRequest, _: CurrentUser = Depends(require_admin)):
+    client = get_service_client()
+    _get_child_or_404(client, child_id)
+
+    term = body.term.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="Term is required")
+
+    values = body.model_dump()
+    values["term"] = term
+    if all(values.get(f) is None for f in _SCORE_FIELDS):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter at least one of assessment score, exam score or attendance",
+        )
+    _validate_scores(values)
+
+    # The table has no unique constraint, and a duplicate (term, subject) would
+    # be counted twice in the analytics mean — so refuse it rather than silently
+    # skewing the chart.
+    existing = (
+        client.table("academic_records")
+        .select("id, subject_id")
+        .eq("child_id", child_id)
+        .eq("term", term)
+        .execute()
+        .data
+        or []
+    )
+    if any(r.get("subject_id") == body.subject_id for r in existing):
+        raise HTTPException(
+            status_code=409,
+            detail=f"A record for term '{term}' already exists for this student. Edit that one instead.",
+        )
+
+    values["child_id"] = child_id
+    return client.table("academic_records").insert(values).execute().data[0]
+
+
+@router.patch("/{child_id}/grades/{record_id}")
+def update_grade(
+    child_id: str,
+    record_id: str,
+    body: GradeUpdateRequest,
+    _: CurrentUser = Depends(require_admin),
+):
+    """Partial update. exclude_unset (not a None-filter) so a score can be
+    explicitly cleared back to null, matching PATCH /subjects/{id}."""
+    client = get_service_client()
+    _get_child_or_404(client, child_id)
+    current = _get_record_or_404(client, child_id, record_id)
+
+    changes = body.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    if "term" in changes:
+        changes["term"] = (changes["term"] or "").strip()
+        if not changes["term"]:
+            raise HTTPException(status_code=400, detail="Term cannot be empty")
+    _validate_scores(changes)
+
+    # Validate the merged row, so clearing the last score cannot leave an empty
+    # record behind.
+    merged = {**current, **changes}
+    if all(merged.get(f) is None for f in _SCORE_FIELDS):
+        raise HTTPException(
+            status_code=400,
+            detail="A record must keep at least one of assessment score, exam score or attendance",
+        )
+
+    return (
+        client.table("academic_records").update(changes).eq("id", record_id).execute().data[0]
+    )
+
+
+@router.delete("/{child_id}/grades/{record_id}")
+def delete_grade(child_id: str, record_id: str, _: CurrentUser = Depends(require_admin)):
+    client = get_service_client()
+    _get_child_or_404(client, child_id)
+    _get_record_or_404(client, child_id, record_id)
+    client.table("academic_records").delete().eq("id", record_id).execute()
+    return {"deleted": record_id}

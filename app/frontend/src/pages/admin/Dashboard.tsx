@@ -623,10 +623,12 @@ function ScatterLegend({ color, label }: { color: string; label: string }) {
   )
 }
 
-// A dot needs BOTH axes, and neither `academic_records` nor `engagement_index`
-// is written by anything in the portal — only by app/scripts/seed_demo.py. So
-// "empty" is almost always a seeding gap, and naming which axis is missing (with
-// counts) is the difference between a one-line fix and a support round-trip.
+// A dot needs BOTH axes, and they fail for different reasons: `engagement_index`
+// is written organically by app/ml/engagement.compute_for_child once parents
+// monitor, while `academic_records` has no writer anywhere in the app — no screen
+// or endpoint enters a student's grades. So "empty" is nearly always the grades
+// axis, and naming which one is missing (with counts) is the difference between a
+// one-line fix and a support round-trip.
 function emptyReason(data: EngagementPerformanceAnalytics): string {
   const d = data.diagnostics
   if (!d) return 'Seed the demo cohort and run predictions to populate this chart.'
@@ -645,9 +647,10 @@ function emptyReason(data: EngagementPerformanceAnalytics): string {
   }
   return (
     `Found ${d.children} student accounts, but ${missing.join(', and ')}. ` +
-    'A student needs both to appear, and the chart needs at least two. Nothing in the portal ' +
-    'writes those two tables — run "python -m app.scripts.seed_demo" from app\backend, ' +
-    'then Risk Predictions → Run predictions.'
+    'A student needs both to appear, and the chart needs at least two. Engagement fills in on ' +
+    'its own once parents monitor, but grades have no entry screen at all — seed them with ' +
+    '"python -m app.scripts.seed_demo" from app\backend, or run ' +
+    'supabase/insights-check-and-seed.sql in the Supabase SQL editor.'
   )
 }
 

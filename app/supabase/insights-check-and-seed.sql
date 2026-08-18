@@ -5,12 +5,28 @@
 -- Background. The admin Insights scatter plots one dot per student that has
 -- BOTH a parental engagement score (engagement_index) AND a grade
 -- (academic_records), and the chart hides itself below two such students.
--- Nothing in the portal UI writes either table — creating students, subjects,
--- materials, quizzes and attempts touches neither — so a busy, fully-populated
--- portal still shows "Not enough data yet". That is the expected outcome, not a
--- bug.
+-- The two axes behave differently, which matters when choosing a fix:
+--
+--   * engagement_index IS written by the app. app/ml/engagement.compute_for_child
+--     upserts a period='current' row whenever a parent's dashboard loads the
+--     engagement panel, derived from their real monitoring sessions. So this axis
+--     fills in organically once parents use the portal.
+--
+--   * academic_records has NO writer anywhere in the application. There is no
+--     screen and no endpoint for entering a student's term grades. This axis can
+--     only be seeded, or inserted by hand.
+--
+-- So the usual live symptom is with_engagement > 0 but with_grades = 0.
+--
+-- IMPORTANT before running STEP 3: it inserts period='demo' engagement rows
+-- stamped now(), and the chart reads the NEWEST row per student — so it will
+-- mask any real period='current' engagement scores rather than sit alongside
+-- them. Nothing is deleted and it is fully reversible (remove the period='demo'
+-- rows and the real ones become newest again), but if the parental engagement
+-- data is real, prefer STEP 3-ALT below: it seeds only the missing grades axis.
 --
 -- Run STEP 1 first. It only reads.
+--
 -- ============================================================================
 
 
@@ -137,3 +153,57 @@ from vals;
 -- number of child accounts, and the verdict should say the chart will render.
 -- Then, in the app: Risk Predictions -> Run predictions, to colour the dots by
 -- risk band. The chart itself works without that step.
+
+
+-- ============================================================================
+-- STEP 3-ALT — SEED THE GRADES AXIS ONLY (writes academic_records only)
+--
+-- Use this instead of STEP 3 when the parental engagement data is real — i.e.
+-- STEP 1 showed with_engagement > 0 but with_grades = 0. It leaves
+-- engagement_index completely untouched, so the chart's x-axis stays the genuine
+-- monitoring-derived score and only the missing y-axis is filled.
+--
+-- READ THIS FIRST. These grades are invented, and they are derived from each
+-- student's OWN real engagement score. That guarantees the scatter shows a
+-- positive correlation — because this script put it there, not because the data
+-- did. It is fine for a demo or a screenshot (the chart labels itself
+-- "simulated cohort"), but it must never be presented as a finding: it would be
+-- circular, manufacturing exactly the relationship the research sets out to
+-- test. For a real result, real grades have to be entered.
+--
+-- Only run on a demo/test project. Rows are tagged term='demo-2026-t1', so
+-- `delete from academic_records where term = 'demo-2026-t1';` undoes it.
+-- ============================================================================
+
+delete from academic_records where term = 'demo-2026-t1';
+
+with latest_eng as (
+  -- Newest engagement row per child — the same rule the chart's x-axis uses.
+  select distinct on (child_id) child_id, engagement_index
+  from engagement_index
+  where engagement_index is not null
+  order by child_id, computed_at desc
+),
+vals as (
+  select
+    p.id,
+    -- Grade band tracks the child's engagement (0..1 -> roughly 42..92), with
+    -- two independent uuid-derived noise terms in -8..+8 so assessment and exam
+    -- differ and the correlation is strong but not perfect.
+    least(99, greatest(20, round(
+      42 + coalesce(e.engagement_index, 0.5) * 50
+         + abs(mod(('x' || substr(md5(p.id::text), 1, 8))::bit(32)::int, 1600)) / 100.0 - 8, 1))) as assessment,
+    least(99, greatest(20, round(
+      42 + coalesce(e.engagement_index, 0.5) * 50
+         + abs(mod(('x' || substr(md5(p.id::text), 9, 8))::bit(32)::int, 1600)) / 100.0 - 8, 1))) as exam,
+    least(100, greatest(50, round(
+      62 + coalesce(e.engagement_index, 0.5) * 34, 1))) as attendance
+  from profiles p
+  left join latest_eng e on e.child_id = p.id
+  where p.role = 'child'
+)
+insert into academic_records (child_id, term, assessment_score, exam_score, attendance_pct)
+select id, 'demo-2026-t1', assessment, exam, attendance from vals;
+
+-- Re-run STEP 1: with_grades should equal the number of child accounts, and
+-- plottable should equal with_engagement.

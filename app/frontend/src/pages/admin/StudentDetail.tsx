@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ShieldAlert, TrendingUp, TrendingDown, FileText, Download, Trash2, Upload } from 'lucide-react'
+import { ArrowLeft, ShieldAlert, TrendingUp, TrendingDown, FileText, Download, Trash2, Upload, Pencil, Plus } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -8,11 +8,13 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Avatar } from '../../components/ui/Avatar'
 import { Alert } from '../../components/ui/Alert'
 import { Field, Input } from '../../components/ui/Field'
+import { Modal } from '../../components/ui/Modal'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { OptionalSubjectsCard } from '../../components/admin/OptionalSubjectsCard'
-import { apiGet, apiPost, apiUpload, apiDelete } from '../../lib/api'
+import { apiGet, apiPost, apiPatch, apiUpload, apiDelete } from '../../lib/api'
 import { useToast } from '../../contexts/ToastContext'
 import { RISK_META } from '../../lib/risk'
-import type { StudentDetail, Prediction, InterventionNote, ReportCard } from '../../lib/types'
+import type { StudentDetail, Prediction, InterventionNote, ReportCard, AcademicRecord } from '../../lib/types'
 
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -33,11 +35,19 @@ export default function StudentDetailPage() {
     }
   }
 
+  // Pulled out of the effect so the term-grades card can refresh the page after
+  // it writes — the academics list lives on this aggregate.
+  async function loadDetail(childId: string) {
+    try {
+      setDetail(await apiGet<StudentDetail>(`/admin/students/${childId}`))
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Failed to load student')
+    }
+  }
+
   useEffect(() => {
     if (!id) return
-    apiGet<StudentDetail>(`/admin/students/${id}`)
-      .then(setDetail)
-      .catch((e) => setLoadError(e instanceof Error ? e.message : 'Failed to load student'))
+    loadDetail(id)
     apiGet<Prediction>(`/predictions/${id}`)
       .then(setPrediction)
       .catch(() => setPrediction(null))
@@ -114,34 +124,9 @@ export default function StudentDetailPage() {
         {id && <OptionalSubjectsCard childId={id} />}
 
         {/* Academics */}
-        <Card title="Academic records" description="Assessment, exam and attendance by term">
-          {detail && detail.academics.length > 0 ? (
-            <div className="overflow-x-auto -mx-5 -mb-5">
-              <table className="w-full text-sm">
-                <thead className="text-slate-500 dark:text-slate-400 text-left">
-                  <tr>
-                    <th className="px-5 py-2 font-medium">Term</th>
-                    <th className="px-5 py-2 font-medium">Assessment</th>
-                    <th className="px-5 py-2 font-medium">Exam</th>
-                    <th className="px-5 py-2 font-medium">Attendance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {detail.academics.map((a) => (
-                    <tr key={a.id}>
-                      <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">{a.term ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{a.assessment_score ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{a.exam_score ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{a.attendance_pct != null ? `${a.attendance_pct}%` : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState icon={TrendingUp} title="No academic records yet" />
-          )}
-        </Card>
+        {id && detail && (
+          <TermGradesCard childId={id} records={detail.academics} onChanged={() => loadDetail(id)} />
+        )}
 
         {/* Report cards */}
         {id && <ReportCardsCard childId={id} />}
@@ -194,6 +179,227 @@ export default function StudentDetailPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+// Term grades — the performance axis of the Insights scatter and an input to the
+// risk predictor. Until this card existed there was no way to record a grade in
+// the app at all, so that chart could only ever be driven by seeded data.
+function TermGradesCard({
+  childId,
+  records,
+  onChanged,
+}: {
+  childId: string
+  records: AcademicRecord[]
+  onChanged: () => void
+}) {
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<AcademicRecord | null>(null)
+  const [deleting, setDeleting] = useState<AcademicRecord | null>(null)
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+
+  async function confirmDelete() {
+    if (!deleting) return
+    setBusy(true)
+    try {
+      await apiDelete(`/admin/students/${childId}/grades/${deleting.id}`)
+      toast.success('Record deleted')
+      setDeleting(null)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete record')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card
+      title="Academic records"
+      description="Assessment, exam and attendance by term — drives the Insights chart and the risk model"
+      actions={
+        <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
+          Add term
+        </Button>
+      }
+    >
+      {records.length > 0 ? (
+        <div className="overflow-x-auto -mx-5 -mb-5">
+          <table className="w-full text-sm">
+            <thead className="text-slate-500 dark:text-slate-400 text-left">
+              <tr>
+                <th className="px-5 py-2 font-medium">Term</th>
+                <th className="px-5 py-2 font-medium">Assessment</th>
+                <th className="px-5 py-2 font-medium">Exam</th>
+                <th className="px-5 py-2 font-medium">Attendance</th>
+                <th className="px-5 py-2" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {records.map((a) => (
+                <tr key={a.id}>
+                  <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">{a.term ?? '—'}</td>
+                  <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{a.assessment_score ?? '—'}</td>
+                  <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">{a.exam_score ?? '—'}</td>
+                  <td className="px-5 py-2.5 text-slate-500 dark:text-slate-400">
+                    {a.attendance_pct != null ? `${a.attendance_pct}%` : '—'}
+                  </td>
+                  <td className="px-5 py-2.5 text-right whitespace-nowrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Pencil className="size-4" />}
+                      onClick={() => setEditing(a)}
+                      aria-label={`Edit ${a.term ?? 'record'}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Trash2 className="size-4" />}
+                      onClick={() => setDeleting(a)}
+                      aria-label={`Delete ${a.term ?? 'record'}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          icon={TrendingUp}
+          title="No academic records yet"
+          description="Add a term to plot this student on the Insights chart."
+        />
+      )}
+
+      <GradeModal
+        open={adding}
+        childId={childId}
+        onClose={() => setAdding(false)}
+        onSaved={() => {
+          toast.success('Record added')
+          onChanged()
+        }}
+      />
+      <GradeModal
+        open={!!editing}
+        childId={childId}
+        record={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          toast.success('Record updated')
+          onChanged()
+        }}
+      />
+      <ConfirmDialog
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={confirmDelete}
+        loading={busy}
+        title="Delete academic record"
+        description={`Delete the record for "${deleting?.term ?? ''}"? It also disappears from the Insights chart and the risk model's inputs.`}
+      />
+    </Card>
+  )
+}
+
+// An empty box means "not recorded" and must reach the API as null, never 0 — a
+// zero is a real mark, and would drag the student's average down.
+function numOrNull(value: string): number | null {
+  const t = value.trim()
+  return t === '' ? null : Number(t)
+}
+
+function GradeModal({
+  open,
+  childId,
+  record = null,
+  onClose,
+  onSaved,
+}: {
+  open: boolean
+  childId: string
+  record?: AcademicRecord | null
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const isEdit = !!record
+  const [term, setTerm] = useState('')
+  const [assessment, setAssessment] = useState('')
+  const [exam, setExam] = useState('')
+  const [attendance, setAttendance] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setTerm(record?.term ?? '')
+    setAssessment(record?.assessment_score?.toString() ?? '')
+    setExam(record?.exam_score?.toString() ?? '')
+    setAttendance(record?.attendance_pct?.toString() ?? '')
+  }, [open, record])
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      const payload = {
+        term: term.trim(),
+        assessment_score: numOrNull(assessment),
+        exam_score: numOrNull(exam),
+        attendance_pct: numOrNull(attendance),
+      }
+      if (isEdit) {
+        await apiPatch(`/admin/students/${childId}/grades/${record!.id}`, payload)
+      } else {
+        await apiPost(`/admin/students/${childId}/grades`, payload)
+      }
+      onClose()
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save record')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit academic record' : 'Add academic record'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Term" hint="Whatever the school calls it — e.g. 2026-T1, Term 2, Second Term.">
+          <Input value={term} onChange={(e) => setTerm(e.target.value)} required />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Assessment %">
+            <Input type="number" min={0} max={100} step="0.1" value={assessment} onChange={(e) => setAssessment(e.target.value)} />
+          </Field>
+          <Field label="Exam %">
+            <Input type="number" min={0} max={100} step="0.1" value={exam} onChange={(e) => setExam(e.target.value)} />
+          </Field>
+          <Field label="Attendance %">
+            <Input type="number" min={0} max={100} step="0.1" value={attendance} onChange={(e) => setAttendance(e.target.value)} />
+          </Field>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Leave a box empty if it is not known yet — at least one is required. Empty means
+          &ldquo;not recorded&rdquo;, which is not the same as a mark of 0.
+        </p>
+        {error && <Alert>{error}</Alert>}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={saving}>
+            {isEdit ? 'Save changes' : 'Add record'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
