@@ -90,4 +90,20 @@ def engagement_performance(_: CurrentUser = Depends(require_admin)):
         )
 
     r = _pearson([p["engagement"] for p in points], [p["performance"] for p in points])
-    return {"points": points, "r": round(r, 3) if r is not None else None, "n": len(points)}
+
+    # Why-it-is-empty counters. A dot needs both axes, so when the chart has
+    # nothing to draw the useful question is *which* axis is missing — and
+    # neither table is ever written by the portal UI, only by
+    # app.scripts.seed_demo. Shipping the counts to the client turns the empty
+    # state into a self-diagnosis instead of a support round-trip.
+    child_ids = {c["id"] for c in children}
+    return {
+        "points": points,
+        "r": round(r, 3) if r is not None else None,
+        "n": len(points),
+        "diagnostics": {
+            "children": len(child_ids),
+            "with_engagement": len(child_ids & eng_latest.keys()),
+            "with_performance": sum(1 for cid in child_ids if pct_n.get(cid, 0) > 0),
+        },
+    }

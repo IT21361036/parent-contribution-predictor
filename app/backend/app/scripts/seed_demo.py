@@ -45,6 +45,28 @@ PROFILES = [
 ]
 
 
+
+def _vary(child_id: str, profile: dict) -> dict:
+    """Scatter one child around their archetype's centre.
+
+    Without this, N children collapse onto only three coordinates — 14 students
+    would plot as 3 stacked dots with a near-perfect r, which reads as fabricated
+    on the admin scatter. The RNG is seeded from the child's own uuid, so the
+    numbers are stable across re-runs (the script stays idempotent) and do not
+    depend on the order rows come back in. Spread is deliberately small enough
+    that each archetype still lands in its intended risk band.
+    """
+    rng = random.Random(child_id)
+    j = lambda spread: rng.uniform(-spread, spread)  # noqa: E731
+    return {
+        "assessment": max(20.0, min(99.0, round(profile["assessment"] + j(7), 1))),
+        "exam": max(20.0, min(99.0, round(profile["exam"] + j(7), 1))),
+        "attendance": max(50.0, min(100.0, round(profile["attendance"] + j(4), 1))),
+        "hours": max(0.0, round(profile["hours"] + j(1.2), 1)),
+        "checks": max(0.0, float(round(profile["checks"] + j(3)))),
+    }
+
+
 def _child_ids(client) -> list[str]:
     rows = client.table("profiles").select("id").eq("role", "child").order("created_at").execute().data
     return [r["id"] for r in rows]
@@ -68,24 +90,25 @@ def seed(client) -> None:
 
     for i, child_id in enumerate(child_ids):
         p = PROFILES[i % len(PROFILES)]
+        a = _vary(child_id, p)
 
         client.table("academic_records").insert(
             {
                 "child_id": child_id,
                 "term": DEMO_TERM,
-                "assessment_score": p["assessment"],
-                "exam_score": p["exam"],
-                "attendance_pct": p["attendance"],
+                "assessment_score": a["assessment"],
+                "exam_score": a["exam"],
+                "attendance_pct": a["attendance"],
             }
         ).execute()
 
-        pei = compute_pei(p["hours"], p["checks"], ATTENTION_PLACEHOLDER)
+        pei = compute_pei(a["hours"], a["checks"], ATTENTION_PLACEHOLDER)
         client.table("engagement_index").insert(
             {
                 "child_id": child_id,
                 "period": DEMO_PERIOD,
-                "monitoring_hours": p["hours"],
-                "check_frequency": p["checks"],
+                "monitoring_hours": a["hours"],
+                "check_frequency": a["checks"],
                 "avg_attention_score": ATTENTION_PLACEHOLDER,
                 "engagement_index": pei,
                 "computed_at": now,

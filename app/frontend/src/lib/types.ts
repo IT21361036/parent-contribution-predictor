@@ -208,6 +208,13 @@ export interface EngagementPerformanceAnalytics {
   points: EngagementPerformancePoint[]
   r: number | null
   n: number
+  // Why the chart is empty, when it is. A dot needs both axes, so these say
+  // which one is missing rather than leaving the admin to guess.
+  diagnostics?: {
+    children: number
+    with_engagement: number
+    with_performance: number
+  }
 }
 
 // One past attention-verification run (GET /parent/attention-history).

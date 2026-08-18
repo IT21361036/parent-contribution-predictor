@@ -623,6 +623,34 @@ function ScatterLegend({ color, label }: { color: string; label: string }) {
   )
 }
 
+// A dot needs BOTH axes, and neither `academic_records` nor `engagement_index`
+// is written by anything in the portal — only by app/scripts/seed_demo.py. So
+// "empty" is almost always a seeding gap, and naming which axis is missing (with
+// counts) is the difference between a one-line fix and a support round-trip.
+function emptyReason(data: EngagementPerformanceAnalytics): string {
+  const d = data.diagnostics
+  if (!d) return 'Seed the demo cohort and run predictions to populate this chart.'
+  if (d.children === 0) {
+    return 'No student accounts exist yet — create some under Users, then seed the demo data.'
+  }
+  const missing: string[] = []
+  if (d.with_performance < 2) {
+    missing.push(`only ${d.with_performance} of ${d.children} have grades (academic_records)`)
+  }
+  if (d.with_engagement < 2) {
+    missing.push(`only ${d.with_engagement} of ${d.children} have a parental engagement score (engagement_index)`)
+  }
+  if (missing.length === 0) {
+    return `${d.children} students have both axes but fewer than two could be plotted — check the backend log.`
+  }
+  return (
+    `Found ${d.children} student accounts, but ${missing.join(', and ')}. ` +
+    'A student needs both to appear, and the chart needs at least two. Nothing in the portal ' +
+    'writes those two tables — run "python -m app.scripts.seed_demo" from app\backend, ' +
+    'then Risk Predictions → Run predictions.'
+  )
+}
+
 function InsightsSection() {
   const [data, setData] = useState<EngagementPerformanceAnalytics | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -655,7 +683,7 @@ function InsightsSection() {
           <EmptyState
             icon={Sparkles}
             title="Not enough data yet"
-            description="Seed the demo cohort and run predictions to populate this chart."
+            description={emptyReason(data)}
           />
         ) : (
           <>

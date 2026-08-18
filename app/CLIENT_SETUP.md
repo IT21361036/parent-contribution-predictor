@@ -458,6 +458,31 @@ python -m app.scripts.diagnose_insights
 
 The last line tells you whether the data is the problem or something else is.
 
+### No terminal? Do the whole thing in SQL instead
+
+Everything above is also available as plain SQL, which is often easier when
+you're setting the app up for someone else — they only need their Supabase
+dashboard, no venv and no Python.
+
+Open **SQL Editor** → **New query** and use
+[`supabase/insights-check-and-seed.sql`](supabase/insights-check-and-seed.sql):
+
+| Part | Does what | Safe to run? |
+|---|---|---|
+| **Step 1** | One row: how many students exist, how many have each axis, how many can be plotted, plus a plain-English verdict | Read-only |
+| **Step 2** | Per-student list — who is plotted, who is skipped, and which axis they're missing | Read-only |
+| **Step 3** | Seeds both tables for every existing child account | **Writes** — demo/test projects only |
+
+Step 3 produces the same tagged rows as `seed_demo` (`term='demo-2026-t1'`,
+`period='demo'`), so the two are interchangeable and `--clear` still cleans up
+after either. It spreads each student's numbers deterministically from their own
+uuid, so re-running gives identical values and the scatter shows a believable
+trend rather than every student stacked on one point.
+
+The chart also explains itself now: when it can't draw, the panel names the
+counts and which table is empty, so a screenshot is usually enough to tell what
+is missing.
+
 ---
 
 ## When something goes wrong
@@ -470,7 +495,7 @@ always reports the wrong cause.
 | **CORS policy / No 'Access-Control-Allow-Origin'** | Almost never a CORS problem. The backend crashed on that request; the error headers get lost on the way out. Look at the backend window for a red traceback and fix that. |
 | **Could not find the 'X' column ... in the schema cache** (`PGRST204`) | A migration from Step 4b didn't run, or the cache is stale. Re-run the migration, then `notify pgrst, 'reload schema';`. |
 | Pages load but every panel is empty, console says **Failed to fetch** | `VITE_API_URL` is wrong. It must be `http://localhost:8001`. Fix `frontend\.env`, then stop and restart `npm run dev` — Vite only reads .env at startup. |
-| **Insights** says *"Not enough data yet"* — even with plenty of users, subjects and quizzes | Expected, and not a bug. That chart reads `academic_records` and `engagement_index`, and **no screen in the portal writes to either**. Run Step 8, both commands. `python -m app.scripts.diagnose_insights` names the students that qualify and what each is missing. |
+| **Insights** says *"Not enough data yet"* — even with plenty of users, subjects and quizzes | Expected, and not a bug. That chart reads `academic_records` and `engagement_index`, and **no screen in the portal writes to either**. The panel itself names the counts and the missing table. Fix with Step 8, or entirely in the Supabase SQL Editor via `supabase/insights-check-and-seed.sql`. |
 | **Risk Predictions** roster is empty or every band is blank | No child accounts, or predictions were never run. Create children, run Step 8, then **Risk Predictions → Run predictions**. |
 | **Invalid API key** / can't log in | A key got mixed up in Step 3. `frontend\.env` takes the **anon** key; `backend\.env` takes the **service_role** key. |
 | Upload fails with **404** | The storage bucket doesn't exist. Revisit 4d. |
