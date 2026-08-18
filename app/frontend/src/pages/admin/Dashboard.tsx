@@ -647,9 +647,9 @@ function emptyReason(data: EngagementPerformanceAnalytics): string {
   }
   return (
     `Found ${d.children} student accounts, but ${missing.join(', and ')}. ` +
-    'A student needs both to appear, and the chart needs at least two. Engagement fills in on ' +
-    'its own once parents monitor, but grades have no entry screen at all — seed them with ' +
-    '"python -m app.scripts.seed_demo" from app\backend, or run ' +
+    'A student needs both to appear, and the chart needs at least two. Engagement fills in by ' +
+    'itself once parents monitor; grades are entered per student — open Users, pick a ' +
+    'student, then Academic records → Add term. For a demo cohort instead, run ' +
     'supabase/insights-check-and-seed.sql in the Supabase SQL editor.'
   )
 }
