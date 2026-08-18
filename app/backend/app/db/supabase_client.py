@@ -27,3 +27,20 @@ def get_service_client() -> Client:
         client = create_client(settings.supabase_url, settings.supabase_service_role_key)
         _local.client = client
     return client
+
+
+def maybe_row(query) -> dict | None:
+    """Read a ``.maybe_single()`` query safely, returning the row or ``None``.
+
+    postgrest's ``maybe_single().execute()`` returns **None itself** when nothing
+    matches — not a response object with ``data=None``. So the natural-looking
+    ``...maybe_single().execute().data`` raises
+    ``AttributeError: 'NoneType' object has no attribute 'data'`` on exactly the
+    path it was written to handle, turning an intended 404/400 into an unhandled
+    500. The in-memory test client returns a response either way, so no unit test
+    can catch this; it only shows up against real Supabase.
+
+    Always read a ``maybe_single()`` through this helper.
+    """
+    result = query.execute()
+    return result.data if result is not None else None

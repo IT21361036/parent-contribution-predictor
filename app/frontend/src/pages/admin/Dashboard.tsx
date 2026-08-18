@@ -565,12 +565,14 @@ function EditUserModal({
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<UserRole>('child')
   const [gradeLevel, setGradeLevel] = useState('')
+  const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (user) {
       setFullName(user.full_name)
+      setEmail(user.email ?? '')
       setRole(user.role)
       setGradeLevel(user.grade_level ?? '')
       setError(null)
@@ -585,6 +587,7 @@ function EditUserModal({
     try {
       await apiPatch(`/admin/users/${user.id}`, {
         full_name: fullName,
+        email: email.trim().toLowerCase(),
         role,
         grade_level: role === 'child' ? gradeLevel || null : null,
       })
@@ -598,10 +601,16 @@ function EditUserModal({
   }
 
   return (
-    <Modal open={!!user} onClose={onClose} title="Edit account" description={user?.email ?? undefined}>
+    <Modal open={!!user} onClose={onClose} title="Edit account">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Full name">
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        </Field>
+        <Field
+          label="Email"
+          hint="This is the address they sign in with — changing it changes their login."
+        >
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
         <Field label="Role">
           <Select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>

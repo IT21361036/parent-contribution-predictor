@@ -72,6 +72,12 @@ class _Query:
         self._op = "delete"
         return self
 
+    def neq(self, col, val):
+        """Real postgrest has this; the fake lacked it, so any router using .neq()
+        blew up with AttributeError instead of running."""
+        self._filters.append(("neq", col, val))
+        return self
+
     def eq(self, col, val):
         self._filters.append(("eq", col, val))
         return self
@@ -99,6 +105,8 @@ class _Query:
     def _matches(self, row) -> bool:
         for op, col, val in self._filters:
             if op == "eq" and row.get(col) != val:
+                return False
+            if op == "neq" and row.get(col) == val:
                 return False
             if op == "in" and row.get(col) not in val:
                 return False

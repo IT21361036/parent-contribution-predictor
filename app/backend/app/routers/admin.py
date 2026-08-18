@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from app.auth.dependencies import CurrentUser, require_role
-from app.db.supabase_client import get_service_client
+from app.db.supabase_client import get_service_client, maybe_row
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -35,6 +35,9 @@ class UpdateUserRequest(BaseModel):
     full_name: str | None = None
     role: str | None = None
     grade_level: str | None = None
+    # EmailStr, same validation the create path uses — email-validator is already
+    # a pinned dependency, so this needs no new install.
+    email: EmailStr | None = None
 
 
 def _cascade_delete_user_data(client, user_id: str) -> None:
@@ -137,6 +140,33 @@ def list_links(_: CurrentUser = Depends(require_admin)):
     return result.data
 
 
+def _change_login_email(client, user_id: str, email: str) -> None:
+    """Move the account's email in BOTH systems that hold it.
+
+    `profiles.email` is only the app's copy — the address someone actually signs
+    in with lives on the Supabase Auth user. Updating one without the other
+    silently desyncs them: the UI would show the new address while the old one
+    stayed the only way in. Auth goes first because it is the authoritative
+    identity; if the profiles write then failed, re-sending the same PATCH is safe
+    (both writes are idempotent).
+    """
+    clash = (
+        client.table("profiles").select("id").eq("email", email).neq("id", user_id).execute().data
+        or []
+    )
+    if clash:
+        raise HTTPException(status_code=409, detail="Another account already uses that email")
+
+    try:
+        client.auth.admin.update_user_by_id(user_id, {"email": email, "email_confirm": True})
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — surface Supabase's reason instead of a 500
+        raise HTTPException(
+            status_code=400, detail=f"Supabase rejected the new email: {str(exc)[:160]}"
+        ) from exc
+
+
 @router.patch("/users/{user_id}")
 def update_user(user_id: str, body: UpdateUserRequest, _: CurrentUser = Depends(require_admin)):
     # exclude_unset (not "filter out None") so the client can explicitly
@@ -149,6 +179,22 @@ def update_user(user_id: str, body: UpdateUserRequest, _: CurrentUser = Depends(
         raise HTTPException(status_code=400, detail="No fields to update")
 
     client = get_service_client()
+
+    # Confirm the account exists before touching Auth, so a bad id is a clean 404
+    # rather than a half-applied change.
+    existing = maybe_row(client.table("profiles").select("email").eq("id", user_id).maybe_single())
+    if not existing:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if "email" in updates:
+        if not updates["email"]:
+            raise HTTPException(status_code=400, detail="Email cannot be empty")
+        # Store lowercase: Supabase treats addresses case-insensitively, and the
+        # seed/lookup code matches profiles.email exactly.
+        updates["email"] = str(updates["email"]).strip().lower()
+        if updates["email"] != (existing.get("email") or "").strip().lower():
+            _change_login_email(client, user_id, updates["email"])
+
     result = client.table("profiles").update(updates).eq("id", user_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
@@ -179,21 +225,18 @@ def delete_link(link_id: str, _: CurrentUser = Depends(require_admin)):
 def _assert_roles(client, *, parent_id: str | None = None, child_id: str | None = None) -> None:
     """Confirm each id exists and holds the role the position requires.
 
-    Uses maybe_single(): .single() raises inside postgrest for a missing id, which
-    surfaced as a 500 rather than the intended 400.
+    Read through maybe_row(): .single() raises inside postgrest for a missing id,
+    and a bare maybe_single().execute() returns None rather than a response, so
+    both naive forms surface as a 500 instead of the intended 400.
     """
     if parent_id is not None:
-        parent = (
-            client.table("profiles").select("role").eq("id", parent_id).maybe_single().execute().data
-        )
+        parent = maybe_row(client.table("profiles").select("role").eq("id", parent_id).maybe_single())
         if not parent or parent["role"] != "parent":
             raise HTTPException(
                 status_code=400, detail="parent_id does not reference a parent profile"
             )
     if child_id is not None:
-        child = (
-            client.table("profiles").select("role").eq("id", child_id).maybe_single().execute().data
-        )
+        child = maybe_row(client.table("profiles").select("role").eq("id", child_id).maybe_single())
         if not child or child["role"] != "child":
             raise HTTPException(
                 status_code=400, detail="child_id does not reference a child profile"
@@ -225,13 +268,8 @@ def update_link(link_id: str, body: UpdateLinkRequest, _: CurrentUser = Depends(
     back to null, matching PATCH /admin/users.
     """
     client = get_service_client()
-    link = (
-        client.table("parent_child_link")
-        .select("*")
-        .eq("id", link_id)
-        .maybe_single()
-        .execute()
-        .data
+    link = maybe_row(
+        client.table("parent_child_link").select("*").eq("id", link_id).maybe_single()
     )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
