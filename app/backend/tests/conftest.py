@@ -157,9 +157,14 @@ def fake_db():
 def client(fake_db, monkeypatch):
     """TestClient with the fake DB wired into every router that reads it and a
     settable current user (defaults to an admin)."""
+    # Every router that reads the DB. Listed exhaustively rather than by hand-picked
+    # subset: a missing name silently leaves that router pointed at the real
+    # Supabase client, so its tests fail with "Invalid API key" instead of running
+    # (which is exactly how `analytics` and `admin` went untested).
     for module in (
-        "quizzes", "materials", "report_cards", "parent", "notifications",
-        "subjects", "students", "analytics",
+        "activity", "admin", "analytics", "engagement", "materials", "notifications",
+        "parent", "predictions", "profiles", "quizzes", "report_cards", "students",
+        "subjects",
     ):
         try:
             monkeypatch.setattr(f"app.routers.{module}.get_service_client", lambda: fake_db)

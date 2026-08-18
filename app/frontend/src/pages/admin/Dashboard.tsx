@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [viewingUser, setViewingUser] = useState<Profile | null>(null)
   const [deletingUser, setDeletingUser] = useState<Profile | null>(null)
   const [deletingLink, setDeletingLink] = useState<ParentChildLink | null>(null)
+  const [editingLink, setEditingLink] = useState<ParentChildLink | null>(null)
   const [actionInProgress, setActionInProgress] = useState(false)
   const navigate = useNavigate()
   const [roleFilter, setRoleFilter] = useState<UserRole | null>(null)
@@ -335,9 +336,16 @@ export default function AdminDashboard() {
                   <span className="font-medium text-slate-800 dark:text-slate-200">{nameOf(l.child_id)}</span>
                   {l.relationship && <Badge>{l.relationship}</Badge>}
                   <button
+                    onClick={() => setEditingLink(l)}
+                    title="Edit link"
+                    className="ml-auto p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-[#4F46E5] dark:hover:text-[#A5B4FC] hover:bg-[#EEF2FF] dark:hover:bg-[#1E1B4B] opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Pencil className="size-4" />
+                  </button>
+                  <button
                     onClick={() => setDeletingLink(l)}
                     title="Remove link"
-                    className="ml-auto p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                    className="p-1.5 rounded-md text-slate-300 dark:text-slate-600 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 className="size-4" />
                   </button>
@@ -356,6 +364,17 @@ export default function AdminDashboard() {
         onCreated={() => {
           refresh()
           toast.success('Account created')
+        }}
+      />
+      <LinkModal
+        open={!!editingLink}
+        link={editingLink}
+        onClose={() => setEditingLink(null)}
+        parents={users.filter((u) => u.role === 'parent')}
+        childProfiles={users.filter((u) => u.role === 'child')}
+        onLinked={() => {
+          refresh()
+          toast.success('Link updated')
         }}
       />
       <LinkModal
@@ -647,9 +666,9 @@ function emptyReason(data: EngagementPerformanceAnalytics): string {
   }
   return (
     `Found ${d.children} student accounts, but ${missing.join(', and ')}. ` +
-    'A student needs both to appear, and the chart needs at least two. Engagement fills in on ' +
-    'its own once parents monitor, but grades have no entry screen at all — seed them with ' +
-    '"python -m app.scripts.seed_demo" from app\backend, or run ' +
+    'A student needs both to appear, and the chart needs at least two. Engagement fills in by ' +
+    'itself once parents monitor; grades are entered per student — open Users, pick a ' +
+    'student, then Academic records → Add term. For a demo cohort instead, run ' +
     'supabase/insights-check-and-seed.sql in the Supabase SQL editor.'
   )
 }
@@ -832,45 +851,72 @@ function RiskSection() {
   )
 }
 
+// One modal for creating and editing a link. A link is an access grant, so the
+// edit path posts through the same validation the create path uses.
 function LinkModal({
   open,
   onClose,
   parents,
   childProfiles,
   onLinked,
+  link = null,
 }: {
   open: boolean
   onClose: () => void
   parents: Profile[]
   childProfiles: Profile[]
   onLinked: () => void
+  link?: ParentChildLink | null
 }) {
+  const isEdit = !!link
   const [parentId, setParentId] = useState('')
   const [childId, setChildId] = useState('')
   const [relationship, setRelationship] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Re-seed on open: an edit starts from the link's current target, a create blank.
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setParentId(link?.parent_id ?? '')
+    setChildId(link?.child_id ?? '')
+    setRelationship(link?.relationship ?? '')
+  }, [open, link])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await apiPost('/admin/links', { parent_id: parentId, child_id: childId, relationship: relationship || null })
-      setParentId('')
-      setChildId('')
-      setRelationship('')
+      const payload = { parent_id: parentId, child_id: childId, relationship: relationship || null }
+      if (isEdit) {
+        await apiPatch(`/admin/links/${link!.id}`, payload)
+      } else {
+        await apiPost('/admin/links', payload)
+      }
       onClose()
       onLinked()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to link parent and child')
+      setError(
+        err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} the link`
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Link parent to child" description="Grants the parent monitoring access to this child.">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Edit link' : 'Link parent to child'}
+      description={
+        isEdit
+          ? 'Changing the parent or child moves monitoring access to that pairing.'
+          : 'Grants the parent monitoring access to this child.'
+      }
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Parent">
           <Select value={parentId} onChange={(e) => setParentId(e.target.value)} required>
@@ -909,7 +955,7 @@ function LinkModal({
             Cancel
           </Button>
           <Button type="submit" loading={submitting} disabled={parents.length === 0 || childProfiles.length === 0}>
-            Link parent and child
+            {isEdit ? 'Save changes' : 'Link parent and child'}
           </Button>
         </div>
       </form>
